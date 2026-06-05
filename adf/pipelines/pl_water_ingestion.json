@@ -1,0 +1,80 @@
+{
+  "name": "pl_water_ingestion",
+  "type": "Microsoft.DataFactory/factories/pipelines",
+  "properties": {
+    "description": "Daily ETL: pull groundwater, rainfall and surface-water data from the public APIs, load Azure SQL, then trigger anomaly detection.",
+    "annotations": ["water-quality", "etl"],
+    "parameters": {
+      "historyYears": {
+        "type": "int",
+        "defaultValue": 5
+      }
+    },
+    "activities": [
+      {
+        "name": "RunIngestion",
+        "description": "Runs the Python ingestion package as a container/custom activity. Collects all sources and upserts them into Azure SQL.",
+        "type": "Custom",
+        "policy": {
+          "timeout": "0.02:00:00",
+          "retry": 2,
+          "retryIntervalInSeconds": 120
+        },
+        "typeProperties": {
+          "command": "python -m ingestion.run_ingestion --years @{pipeline().parameters.historyYears}",
+          "resourceLinkedService": {
+            "referenceName": "ls_azuresql",
+            "type": "LinkedServiceReference"
+          }
+        }
+      },
+      {
+        "name": "TriggerAnomalyDetection",
+        "description": "Invokes the anomaly-detection Function once the load succeeds.",
+        "type": "AzureFunctionActivity",
+        "dependsOn": [
+          {
+            "activity": "RunIngestion",
+            "dependencyConditions": ["Succeeded"]
+          }
+        ],
+        "typeProperties": {
+          "functionName": "anomaly_detector",
+          "method": "POST"
+        },
+        "linkedServiceName": {
+          "referenceName": "ls_function",
+          "type": "LinkedServiceReference"
+        }
+      },
+      {
+        "name": "LogIngestionFailure",
+        "description": "Records a row in an audit table if ingestion fails, supporting data-integrity reporting.",
+        "type": "SqlServerStoredProcedure",
+        "dependsOn": [
+          {
+            "activity": "RunIngestion",
+            "dependencyConditions": ["Failed"]
+          }
+        ],
+        "typeProperties": {
+          "storedProcedureName": "monitoring.usp_log_pipeline_failure",
+          "storedProcedureParameters": {
+            "pipeline_name": {
+              "value": "@pipeline().Pipeline",
+              "type": "String"
+            },
+            "run_id": {
+              "value": "@pipeline().RunId",
+              "type": "String"
+            }
+          }
+        },
+        "linkedServiceName": {
+          "referenceName": "ls_azuresql",
+          "type": "LinkedServiceReference"
+        }
+      }
+    ]
+  }
+}

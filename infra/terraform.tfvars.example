@@ -1,0 +1,20 @@
+# Copy this file to terraform.tfvars and fill in the values.
+# terraform.tfvars is git-ignored so secrets never reach the repository.
+#
+# The SQL admin password should instead be supplied as an environment
+# variable so it is not written to disk at all:
+#
+#   export TF_VAR_sql_admin_password='<a-strong-password>'
+#
+# Then run: terraform plan / terraform apply
+
+project_name = "waterqlty"
+environment  = "dev"
+location     = "australiaeast"
+
+sql_admin_login = "wqadmin"
+# sql_admin_password = "set-me-via-TF_VAR_sql_admin_password-instead"
+
+# Your public IP so Power BI Desktop and local tools can reach the database.
+# Find it with: curl -s https://api.ipify.org
+allowed_client_ip = "203.0.113.10"

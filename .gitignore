@@ -1,0 +1,39 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+.env
+.pytest_cache/
+
+# Terraform
+infra/.terraform/
+infra/.terraform.lock.hcl
+*.tfstate
+*.tfstate.*
+*.tfvars
+!*.tfvars.example
+crash.log
+
+# Azure Functions
+functions/local.settings.json
+functions/bin/
+functions/obj/
+.python_packages/
+
+# Data / secrets
+data/raw/
+data/processed/
+*.csv
+!sample_data/*.csv
+secrets.json
+
+# Power BI temp
+*.pbix.tmp
+~$*.pbix
+
+# OS / IDE
+.DS_Store
+.vscode/
+.idea/

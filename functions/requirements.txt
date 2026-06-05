@@ -1,0 +1,7 @@
+azure-functions==1.20.0
+azure-identity==1.17.1
+azure-keyvault-secrets==4.8.0
+pandas==2.2.2
+numpy==1.26.4
+pyodbc==5.1.0
+sqlalchemy==2.0.31

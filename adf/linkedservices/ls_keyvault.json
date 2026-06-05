@@ -1,0 +1,16 @@
+{
+  "name": "ls_keyvault",
+  "type": "Microsoft.DataFactory/factories/linkedservices",
+  "properties": {
+    "type": "AzureKeyVault",
+    "description": "Resolves secrets (the SQL connection string) at runtime so nothing sensitive is stored in the factory.",
+    "typeProperties": {
+      "baseUrl": "https://@{linkedService().vaultName}.vault.azure.net/"
+    },
+    "parameters": {
+      "vaultName": {
+        "type": "String"
+      }
+    }
+  }
+}

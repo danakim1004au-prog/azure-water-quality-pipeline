@@ -1,0 +1,27 @@
+{
+  "name": "trg_daily_0500",
+  "type": "Microsoft.DataFactory/factories/triggers",
+  "properties": {
+    "description": "Runs the ingestion pipeline every morning at 05:00 local time, ahead of the 06:00 anomaly-detection function schedule.",
+    "type": "ScheduleTrigger",
+    "typeProperties": {
+      "recurrence": {
+        "frequency": "Day",
+        "interval": 1,
+        "startTime": "2026-01-01T05:00:00",
+        "timeZone": "Cen. Australia Standard Time"
+      }
+    },
+    "pipelines": [
+      {
+        "pipelineReference": {
+          "referenceName": "pl_water_ingestion",
+          "type": "PipelineReference"
+        },
+        "parameters": {
+          "historyYears": 1
+        }
+      }
+    ]
+  }
+}

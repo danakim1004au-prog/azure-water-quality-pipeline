@@ -1,0 +1,19 @@
+# Data ingestion and processing
+requests==2.32.3
+pandas==2.2.2
+numpy==1.26.4
+python-dateutil==2.9.0
+
+# Azure SDK
+pyodbc==5.1.0
+sqlalchemy==2.0.31
+azure-identity==1.17.1
+azure-keyvault-secrets==4.8.0
+azure-storage-blob==12.20.0
+
+# Optional helper libraries for the public data sources
+# python-sa-gwdata exposes a typed wrapper around the groundwater REST API
+python-sa-gwdata==0.16.0
+
+# Testing
+pytest==8.2.2

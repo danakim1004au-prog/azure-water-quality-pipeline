@@ -1,0 +1,9 @@
+{
+  "IsEncrypted": false,
+  "Values": {
+    "AzureWebJobsStorage": "UseDevelopmentStorage=true",
+    "FUNCTIONS_WORKER_RUNTIME": "python",
+    "_comment": "For local runs put the raw ODBC connection string here. In Azure the function instead reads SQL_SECRET_URI from Key Vault via managed identity.",
+    "SQL_CONNECTION_STRING": "Driver={ODBC Driver 18 for SQL Server};Server=tcp:<server>.database.windows.net,1433;Database=sqldb-water-monitoring;Uid=wqadmin;Pwd=<password>;Encrypt=yes;"
+  }
+}

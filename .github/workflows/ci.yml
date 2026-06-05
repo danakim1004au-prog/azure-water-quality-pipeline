@@ -1,0 +1,49 @@
+name: CI
+
+# Lints and unit-tests the Python code on every push / PR. No cloud
+# credentials are needed because the detector tests run on synthetic frames.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install pandas numpy pytest ruff
+
+      - name: Lint
+        run: ruff check ingestion functions/anomaly_detector scripts tests
+
+      - name: Run unit tests
+        run: pytest tests/ -v
+
+  terraform-validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "1.7.5"
+
+      - name: Terraform fmt check
+        run: terraform -chdir=infra fmt -check
+
+      - name: Terraform init (no backend)
+        run: terraform -chdir=infra init -backend=false
+
+      - name: Terraform validate
+        run: terraform -chdir=infra validate

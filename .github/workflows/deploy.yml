@@ -1,0 +1,60 @@
+name: Deploy
+
+# Provisions infrastructure with Terraform and deploys the anomaly-detection
+# Function. Runs only on demand (or after CI on main) and requires Azure
+# credentials configured as repository secrets:
+#
+#   AZURE_CREDENTIALS          - service-principal JSON for azure/login
+#   TF_VAR_sql_admin_password  - SQL admin password (consumed by Terraform)
+#
+# This workflow is intentionally manual (workflow_dispatch) so a portfolio
+# clone never spends money by accident.
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: dev
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Azure login
+        uses: azure/login@v2
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "1.7.5"
+
+      - name: Terraform apply
+        working-directory: infra
+        env:
+          TF_VAR_sql_admin_password: ${{ secrets.TF_VAR_sql_admin_password }}
+        run: |
+          terraform init
+          terraform apply -auto-approve
+
+      - name: Capture outputs
+        id: tf
+        working-directory: infra
+        run: |
+          echo "func_name=$(terraform output -raw function_app_name)" >> "$GITHUB_OUTPUT"
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Deploy Function App
+        uses: Azure/functions-action@v1
+        with:
+          app-name: ${{ steps.tf.outputs.func_name }}
+          package: functions
+          scm-do-build-during-deployment: true
+          enable-oryx-build: true

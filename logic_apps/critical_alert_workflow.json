@@ -1,0 +1,99 @@
+{
+  "definition": {
+    "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+    "contentVersion": "1.0.0.0",
+    "comments": "Polls Azure SQL for new CRITICAL anomaly events and sends an email + Teams alert for each, then marks it as alerted so it is not re-sent. Mirrors the EV project's Slack-webhook alerting pattern in a different channel.",
+    "parameters": {
+      "$connections": {
+        "defaultValue": {},
+        "type": "Object"
+      }
+    },
+    "triggers": {
+      "Every_15_minutes": {
+        "type": "Recurrence",
+        "recurrence": {
+          "frequency": "Minute",
+          "interval": 15
+        }
+      }
+    },
+    "actions": {
+      "Get_unsent_critical_events": {
+        "type": "ApiConnection",
+        "inputs": {
+          "host": {
+            "connection": {
+              "name": "@parameters('$connections')['sql']['connectionId']"
+            }
+          },
+          "method": "post",
+          "path": "/v2/datasets/default/procedures/@{encodeURIComponent('monitoring.usp_get_unsent_critical_events')}"
+        }
+      },
+      "For_each_event": {
+        "type": "Foreach",
+        "foreach": "@body('Get_unsent_critical_events')?['ResultSets']?['Table1']",
+        "runAfter": {
+          "Get_unsent_critical_events": ["Succeeded"]
+        },
+        "actions": {
+          "Send_email_alert": {
+            "type": "ApiConnection",
+            "inputs": {
+              "host": {
+                "connection": {
+                  "name": "@parameters('$connections')['office365']['connectionId']"
+                }
+              },
+              "method": "post",
+              "path": "/v2/Mail",
+              "body": {
+                "To": "water-operations@example.com",
+                "Subject": "CRITICAL groundwater alert: @{items('For_each_event')?['anomaly_type']} at @{items('For_each_event')?['location_name']}",
+                "Body": "<p><b>Management area:</b> @{items('For_each_event')?['management_area']}</p><p><b>Event date:</b> @{items('For_each_event')?['event_date']}</p><p><b>Detail:</b> @{items('For_each_event')?['detail']}</p>",
+                "Importance": "High"
+              }
+            }
+          },
+          "Post_to_Teams": {
+            "type": "ApiConnection",
+            "runAfter": {
+              "Send_email_alert": ["Succeeded"]
+            },
+            "inputs": {
+              "host": {
+                "connection": {
+                  "name": "@parameters('$connections')['teams']['connectionId']"
+                }
+              },
+              "method": "post",
+              "path": "/v3/beta/teams/conversation/message",
+              "body": {
+                "messageBody": "CRITICAL: @{items('For_each_event')?['anomaly_type']} detected at @{items('For_each_event')?['location_name']} (@{items('For_each_event')?['management_area']}). @{items('For_each_event')?['detail']}"
+              }
+            }
+          },
+          "Mark_event_alerted": {
+            "type": "ApiConnection",
+            "runAfter": {
+              "Post_to_Teams": ["Succeeded"]
+            },
+            "inputs": {
+              "host": {
+                "connection": {
+                  "name": "@parameters('$connections')['sql']['connectionId']"
+                }
+              },
+              "method": "post",
+              "path": "/v2/datasets/default/procedures/@{encodeURIComponent('monitoring.usp_mark_event_alerted')}",
+              "body": {
+                "event_id": "@items('For_each_event')?['event_id']"
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

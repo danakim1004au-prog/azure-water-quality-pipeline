@@ -1,0 +1,24 @@
+{
+  "name": "ls_function",
+  "type": "Microsoft.DataFactory/factories/linkedservices",
+  "properties": {
+    "type": "AzureFunction",
+    "description": "Connects the pipeline to the anomaly-detection Function App. The function key is resolved from Key Vault, not stored inline.",
+    "typeProperties": {
+      "functionAppUrl": "https://@{linkedService().functionAppName}.azurewebsites.net",
+      "functionKey": {
+        "type": "AzureKeyVaultSecret",
+        "store": {
+          "referenceName": "ls_keyvault",
+          "type": "LinkedServiceReference"
+        },
+        "secretName": "function-host-key"
+      }
+    },
+    "parameters": {
+      "functionAppName": {
+        "type": "String"
+      }
+    }
+  }
+}
