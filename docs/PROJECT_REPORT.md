@@ -18,11 +18,13 @@ that a decision-maker can act on.
 
 This project implements that workflow end to end on Azure. It is built around
 three independent public data sources, a state-driven infrastructure-as-code
-deployment, a transparent statistical anomaly-detection engine, and a Power BI
-decision dashboard connected live to the cloud warehouse. The emphasis
-throughout is on **explainability and data integrity** — every figure on the
-dashboard can be traced back to a source reading, and every alert back to a
-documented threshold and rationale.
+deployment, a two-layer analytics engine — transparent statistical detectors
+*plus* machine-learning models for forecasting and open-ended anomaly
+detection — and a Power BI decision dashboard connected live to the cloud
+warehouse. The emphasis throughout is on **explainability and data integrity**:
+every figure on the dashboard can be traced back to a source reading, every
+rule-based alert back to a documented threshold, and every learned model back to
+a leakage-safe evaluation against a held-out future.
 
 ---
 
@@ -52,9 +54,12 @@ These questions map directly onto the three detectors described in Section 6.
  Climate API (daily rainfall)               ├─► Azure Data Factory ─► Azure SQL Database
  Surface-water portal (river/reservoir)     ┘     (daily ETL)              │
                                                                            │
-                                              Azure Function (anomaly scorer, daily)
+                              Azure Function (daily analytics) ────────────┤
+                              · rule-based detectors (explainable)         │
+                              · ML level forecast (gradient boosting)      │
+                              · ML anomaly detection (Isolation Forest)    │
                                                           │
-                                              Azure SQL · anomaly_events
+                                              Azure SQL · anomaly_events / forecasts
                                                           │
                                    ┌──────────────────────┴───────────────────────┐
                                    ▼                                               ▼
@@ -68,7 +73,8 @@ These questions map directly onto the three detectors described in Section 6.
 | Ingestion | Python (requests, pandas, SQLAlchemy) | Pulls each source, normalises it, upserts to Azure SQL |
 | Orchestration | Azure Data Factory | Schedules the daily ETL and triggers detection |
 | Storage | Azure SQL Database (Basic) | Curated, query-optimised analytical store |
-| Analytics | Azure Functions (Python) | Runs the three anomaly detectors daily |
+| Analytics (rules) | Azure Functions (Python) | Runs the three anomaly detectors daily |
+| Analytics (ML) | scikit-learn (gradient boosting, Isolation Forest) | Month-ahead level forecast and unsupervised anomaly detection |
 | Secrets | Azure Key Vault | Holds the SQL connection string; read via managed identity |
 | Alerting | Azure Logic Apps | Emails / posts Teams messages on CRITICAL events |
 | Visualisation | Power BI (DirectQuery) | Four-view decision dashboard |
@@ -159,12 +165,20 @@ the design rationale is in Section 9.
 
 ---
 
-## 6. Anomaly-detection methodology
+## 6. Detection & forecasting methodology
 
-The detectors are statistical and transparent rather than black-box, because in
-a water-security context every alert must be explainable to an engineer, a
-regulator or a decision-maker. Each event records a plain-language `detail`
-string describing exactly why it fired.
+Analytics are deliberately built in two layers. Transparent statistical rules
+handle the failure modes you can name — auditable and explainable, which a
+water-security/compliance context demands. Machine-learning models then add what
+rules cannot: a forward-looking forecast, and open-ended detection of anomalies
+no rule anticipates. The two are complementary, not competing.
+
+### 6.1 Rule-based detectors (explainable)
+
+The detectors are statistical and transparent rather than black-box, because
+every alert must be explainable to an engineer, a regulator or a decision-maker.
+Each event records a plain-language `detail` string describing exactly why it
+fired.
 
 | Detector | What it flags | Method | Thresholds |
 |----------|---------------|--------|------------|
@@ -177,6 +191,59 @@ The reasoning behind each threshold is documented in full in
 by six unit tests ([`tests/test_detectors.py`](../tests/test_detectors.py))
 that run on synthetic frames with no cloud or database dependency, so they
 execute in CI on every push.
+
+### 6.2 Groundwater-level forecasting (supervised ML)
+
+To anticipate supply pressure rather than only react to it,
+[`ml/forecast_train.py`](../ml/forecast_train.py) trains a gradient-boosted
+regression model (`GradientBoostingRegressor`) to predict each bore's water
+level a month ahead. Features known at prediction time only: lagged and rolling
+water levels (1/7/14/30-day), trailing rainfall totals (7/14/30-day), salinity,
+and a smooth day-of-year seasonality encoding.
+
+Two choices make the reported skill trustworthy in a time-series setting:
+
+- **No look-ahead leakage.** Every feature uses only information available at
+  the prediction time; the target is a strictly future value. A unit test
+  asserts the feature matrix never contains the raw target.
+- **Purged chronological split.** Train and test are split strictly in time —
+  never randomly shuffled — with a horizon-wide purge gap, so a training label
+  can never fall inside the test window. Skill is benchmarked against a naive
+  **persistence** baseline ("next month looks like today"); beating it is what
+  proves the model adds value.
+
+The model's advantage grows with the horizon as it learns the seasonal recharge
+cycle that persistence cannot represent
+([`ml/artifacts/forecast_horizon_sweep.csv`](../ml/artifacts/forecast_horizon_sweep.csv)):
+
+| Horizon | Model MAE | Persistence MAE | Improvement |
+|--------:|----------:|----------------:|------------:|
+| 7 days  | 0.130 m   | 0.121 m         | −7.8 %      |
+| 14 days | 0.167 m   | 0.147 m         | −13.6 %     |
+| 30 days | 0.198 m   | 0.202 m         | +2.0 %      |
+| 45 days | 0.214 m   | 0.244 m         | +12.3 %     |
+| 60 days | 0.216 m   | 0.297 m         | +27.3 %     |
+
+The negative values at short horizons are reported deliberately and honestly:
+at close range the series is so autocorrelated that persistence is genuinely
+hard to beat, so the model is positioned at the month-ahead operational horizon
+where it adds real foresight.
+
+### 6.3 Unsupervised anomaly detection (ML)
+
+[`ml/anomaly_unsupervised.py`](../ml/anomaly_unsupervised.py) fits an
+`IsolationForest` over well-agnostic features — rolling z-scores of level and
+salinity, day-over-day rates of change, and trailing rainfall — to learn the
+joint shape of "normal" across the fleet and flag points that don't fit. It
+requires no labels and no thresholds, so it can surface combinations the rules
+were never designed for. As a validation check it independently rediscovers the
+deliberately-injected anomaly scenarios (the rapid level change on well 1 and
+the coastal salinity-intrusion trend on well 5).
+
+Both models are verified by [`tests/test_ml.py`](../tests/test_ml.py), which
+guards the leakage-safe split, the absence of target leakage, the model's win
+over persistence at range, and the rediscovery of the injected anomalies — all
+on the committed sample data, with no cloud dependency.
 
 ---
 
@@ -289,9 +356,11 @@ several integrity controls are built in:
 
 ```bash
 pip install -r requirements.txt
-python scripts/generate_sample_data.py      # synthetic dataset
-python scripts/run_detectors_offline.py     # run the detectors, write anomaly_events.csv
-pytest tests/ -v                            # 6 detector unit tests
+python scripts/generate_sample_data.py      # demonstration dataset
+python scripts/run_detectors_offline.py     # run the rule-based detectors
+python ml/forecast_train.py                 # train + evaluate the level forecast
+python ml/anomaly_unsupervised.py           # learned multivariate anomaly detection
+pytest tests/ -v                            # 12 unit tests (detectors + ML)
 ```
 
 ### On Azure
@@ -325,7 +394,11 @@ In the interest of an honest account:
   Terraform deploys both resources; importing the pipeline definitions in
   [`adf/`](../adf/) and deploying the function code is the next step to make the
   orchestration and scheduled detection run in the cloud (the detection logic
-  itself is complete and tested).
+  and the ML models are complete and tested).
+- **The ML models run offline; cloud scoring is the next step.** Training and
+  evaluation are complete and tested, and the saved `forecast_model.joblib` is a
+  plain scikit-learn artifact that the existing Function (or Azure ML) can load
+  for scheduled inference — a deployment task, not a modelling one.
 - **The Logic App workflow is defined but not connected** to live email/Teams
   connectors.
 - **The dashboard currently runs on the schema-identical demonstration dataset**

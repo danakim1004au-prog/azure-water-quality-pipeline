@@ -7,12 +7,15 @@ into decisions a human can act on.
 
 It ingests publicly-licensed South Australian groundwater, rainfall and
 surface-water data through an **Azure Data Factory** pipeline into **Azure
-SQL**, scores it for anomalies with an **Azure Function**, raises alerts via
-**Logic Apps**, and presents everything in a four-view **Power BI** decision
-dashboard. The whole stack is provisioned with **Terraform**.
+SQL**, scores it with both **transparent rule-based detectors** and
+**machine-learning models** (a gradient-boosted level forecast and an Isolation
+Forest anomaly detector), raises alerts via **Logic Apps**, and presents
+everything in a four-view **Power BI** decision dashboard. The whole stack is
+provisioned with **Terraform**.
 
 > 📄 **Full write-up:** [`docs/PROJECT_REPORT.md`](docs/PROJECT_REPORT.md) ·
 > 🧠 **Detection methodology:** [`docs/anomaly_methodology.md`](docs/anomaly_methodology.md) ·
+> 🤖 **Machine learning:** [`ml/README.md`](ml/README.md) ·
 > 📊 **Dashboard build guide:** [`powerbi/DASHBOARD_GUIDE.md`](powerbi/DASHBOARD_GUIDE.md)
 
 ---
@@ -29,9 +32,12 @@ dashboard. The whole stack is provisioned with **Terraform**.
  Climate API (daily rainfall)               ├─► Azure Data Factory ─► Azure SQL Database
  Surface-water portal (river/reservoir)     ┘     (daily ETL)              │
                                                                            │
-                                              Azure Function (anomaly scorer, daily)
+                              Azure Function (daily analytics) ────────────┤
+                              · rule-based detectors (explainable)         │
+                              · ML level forecast (gradient boosting)      │
+                              · ML anomaly detection (Isolation Forest)    │
                                                           │
-                                              Azure SQL · anomaly_events
+                                              Azure SQL · anomaly_events / forecasts
                                                           │
                                    ┌──────────────────────┴───────────────────────┐
                                    ▼                                               ▼
@@ -41,7 +47,8 @@ dashboard. The whole stack is provisioned with **Terraform**.
 
 **Tech stack:** Terraform · Azure SQL Database · Azure Data Factory · Azure
 Functions (Python) · Azure Key Vault · Azure Logic Apps · Power BI ·
-Python (pandas / SQLAlchemy) · GitHub Actions CI/CD.
+Python (pandas / SQLAlchemy) · scikit-learn (forecasting + anomaly detection) ·
+GitHub Actions CI/CD.
 
 ---
 
@@ -102,6 +109,40 @@ unit tests in [`tests/test_detectors.py`](tests/test_detectors.py).
 
 ---
 
+## Forecasting & machine learning
+
+The rule-based detectors answer *"has a known failure mode occurred?"*. Two
+learned models go further — anticipating supply pressure before it arrives, and
+catching anomalies no rule describes. Full detail in [`ml/README.md`](ml/README.md);
+verified by [`tests/test_ml.py`](tests/test_ml.py).
+
+**Groundwater-level forecast (supervised).** A gradient-boosted regressor
+predicts each bore's water level a month ahead from lagged levels, trailing
+rainfall and seasonality. It is trained with a **purged chronological split**
+(never a random shuffle) and benchmarked against a naive persistence baseline,
+so the reported skill is genuinely forward-looking. The model's edge over
+persistence grows with the horizon as it learns the seasonal recharge cycle:
+
+| Horizon | Model MAE | Persistence MAE | Improvement |
+|--------:|----------:|----------------:|------------:|
+| 7 days  | 0.130 m   | 0.121 m         | −7.8 %      |
+| 30 days | 0.198 m   | 0.202 m         | **+2.0 %**  |
+| 60 days | 0.216 m   | 0.297 m         | **+27.3 %** |
+
+![Actual vs predicted water level](ml/artifacts/forecast_example.png)
+
+**Unsupervised anomaly detection.** An Isolation Forest learns the joint shape
+of normal behaviour across level, salinity, their rates of change and rainfall,
+and flags points that don't fit — no labels, no thresholds. As a check, it
+independently rediscovers the deliberately-injected anomaly scenarios (the
+rapid level change on well 1 and the coastal salinity trend on well 5).
+
+> **Why both?** Transparent rules give auditable, explainable alerts for the
+> faults you can name — exactly what a compliance context needs — while the
+> learned models add the foresight and open-ended detection that rules can't.
+
+---
+
 ## Data sources
 
 | Source | Data | Licence |
@@ -131,8 +172,10 @@ unit tests in [`tests/test_detectors.py`](tests/test_detectors.py).
 ```bash
 pip install -r requirements.txt
 python scripts/generate_sample_data.py      # hydrologically plausible synthetic data
-python scripts/run_detectors_offline.py     # runs the real detectors over it
-pytest tests/ -v                            # verify the detection logic (6 tests)
+python scripts/run_detectors_offline.py     # runs the rule-based detectors over it
+python ml/forecast_train.py                 # trains + evaluates the level forecast
+python ml/anomaly_unsupervised.py           # learned multivariate anomaly detection
+pytest tests/ -v                            # verify all logic (12 tests)
 ```
 
 To reproduce the cloud setup, see
@@ -149,12 +192,13 @@ azure-water-quality-pipeline/
 ├── infra/            # Terraform IaC (Azure SQL, ADF, Function, Key Vault)
 ├── ingestion/        # Python source clients + Azure SQL loader
 ├── functions/        # Azure Function: 3-detector anomaly scoring
+├── ml/               # ML: level forecasting + Isolation Forest anomaly detection
 ├── adf/              # Data Factory linked services, pipeline, trigger
 ├── logic_apps/       # CRITICAL-event email/Teams alert workflow
 ├── sql/              # Schema, views, audit table, stored procedures
 ├── powerbi/          # .pbix dashboard, build guide, screenshots
 ├── scripts/          # Sample-data generator, offline runner, Azure loaders
-├── tests/            # Unit tests for the detectors
+├── tests/            # Unit tests for the detectors and the ML models
 ├── docs/             # Project report + anomaly methodology
 └── .github/          # CI (lint + test + tf validate) and Deploy workflows
 ```

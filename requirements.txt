@@ -15,5 +15,10 @@ azure-storage-blob==12.20.0
 # python-sa-gwdata exposes a typed wrapper around the groundwater REST API
 python-sa-gwdata==0.16.0
 
+# Machine learning (forecasting + unsupervised anomaly detection)
+scikit-learn==1.5.1
+joblib==1.4.2
+matplotlib==3.9.1
+
 # Testing
 pytest==8.2.2

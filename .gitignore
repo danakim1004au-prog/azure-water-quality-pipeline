@@ -29,6 +29,12 @@ data/processed/
 !sample_data/*.csv
 secrets.json
 
+# ML artifacts: regenerable model binaries and large scored outputs stay out of
+# git; the small result summaries and the example chart are kept so reviewers
+# can see the numbers without running training.
+ml/artifacts/*.joblib
+!ml/artifacts/forecast_horizon_sweep.csv
+
 # Power BI temp
 *.pbix.tmp
 ~$*.pbix

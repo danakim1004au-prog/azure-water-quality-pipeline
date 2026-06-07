@@ -1,0 +1,10 @@
+{
+  "horizon_days": 30,
+  "n_train": 4788,
+  "n_test": 1242,
+  "model_mae_m": 0.198,
+  "model_rmse_m": 0.2516,
+  "baseline_mae_m": 0.202,
+  "baseline_rmse_m": 0.2966,
+  "mae_improvement_pct": 2.0
+}
