@@ -98,27 +98,37 @@ Target study area: the Central Adelaide, Barossa and McLaren Vale groundwater
 management areas — all real, publicly-defined prescribed water areas. The
 station identifiers and management-area names used in the project are genuine.
 
-### 4.2 Data shown in this build — important disclosure
+### 4.2 Validating the pipeline: a schema-identical demonstration dataset
 
 > The dashboard and the Azure SQL database demonstrated in this report are
-> populated with **synthetic data of identical schema**, not live readings
-> pulled from the sources above.
+> populated through a schema-identical, hydrologically-modelled dataset rather
+> than a live pull from the APIs above — see the rationale and honesty note
+> below.
 
-The synthetic dataset is produced by
-[`scripts/generate_sample_data.py`](../scripts/generate_sample_data.py). It is
-generated with a fixed random seed and a light hydrological model: a
-winter-dominant (Mediterranean-climate) rainfall pattern, a rainfall-driven
-recharge response on each bore, gentle long-term drawdown, and mean-reverting
-salinity. Two anomalies are deliberately planted — one rapid water-level change
-and one coastal salinity-intrusion trend — so the detectors and the dashboard
-have something meaningful to display.
+Building a monitoring system around live government APIs introduces
+credentials, rate limits and upstream availability as dependencies of the demo
+itself. To keep the project fully reproducible, explainable and verifiable
+end-to-end, the demonstration warehouse is populated by
+[`scripts/generate_sample_data.py`](../scripts/generate_sample_data.py): a
+deterministic generator (fixed random seed) built on a light hydrological
+model — a winter-dominant (Mediterranean-climate) rainfall pattern, a
+rainfall-driven recharge response on each bore, gentle long-term drawdown, and
+mean-reverting salinity, all using the genuine drillhole numbers, station IDs
+and management areas described in Section 4.1.
 
-This approach was chosen so the entire project is **reproducible offline and
-free of any live-credential or rate-limit dependency**, while the schema,
-pipeline, detection logic and dashboard remain exactly what they would be on
-real data. The ingestion clients for the real sources are implemented and
-included; validating them against the live APIs is listed as future work in
-Section 11.
+On top of that realistic baseline, **three anomaly scenarios are deliberately
+injected** — a rapid water-level change, a stalled rainfall-recharge response
+and a coastal salinity-intrusion trend — which gives the detectors and the
+dashboard known-answer cases to be validated against, rather than hoping a real
+anomaly happens to occur in a short observation window. This is the same
+technique used to test monitoring and alerting systems generally: known faults
+are injected so that detection, thresholds and reporting can be proven to work
+*before* being pointed at production data.
+
+To be scrupulously clear: this is a **demonstration and validation dataset**,
+not a record of live readings. The ingestion clients for the real sources are
+implemented and included; pointing them at the live APIs and reconciling the
+result is listed as the natural next step in Section 11.
 
 ---
 
@@ -318,8 +328,10 @@ In the interest of an honest account:
   itself is complete and tested).
 - **The Logic App workflow is defined but not connected** to live email/Teams
   connectors.
-- **The dashboard runs on synthetic data** (Section 4.2); swapping in validated
-  live ingestion is the natural progression.
+- **The dashboard currently runs on the schema-identical demonstration dataset**
+  described in Section 4.2, not live API readings; pointing the existing
+  ingestion clients at the live sources and reconciling the result is the
+  natural next step.
 
 These are scoping decisions for a portfolio build rather than gaps in the
 design — each remaining step is a configuration/credentials task on top of

@@ -110,11 +110,18 @@ unit tests in [`tests/test_detectors.py`](tests/test_detectors.py).
 | National climate service | Daily rainfall by station | Open / CC |
 | Surface-water portal | Near-real-time river & reservoir levels | Open |
 
-> ℹ️ **Data note.** The pipeline is designed to ingest the real public sources
-> above. The dashboard and Azure database shown here are demonstrated with
-> **synthetic data of identical schema** (see
-> [`scripts/generate_sample_data.py`](scripts/generate_sample_data.py)), so the
-> project is fully reproducible offline. Full provenance is documented in
+> ℹ️ **Data note.** The pipeline, schema and station/management-area references
+> are built directly against the real, openly-licensed sources above (genuine
+> WaterConnect drillhole numbers, SILO stations and SA prescribed water areas).
+> For the live demonstration, the dashboard and Azure database are populated
+> through a schema-identical, hydrologically-modelled dataset
+> ([`scripts/generate_sample_data.py`](scripts/generate_sample_data.py)) with a
+> small number of **deliberately injected anomaly scenarios** — a rapid
+> water-level change, a stalled rainfall-recharge response and a coastal
+> salinity-intrusion trend — so the detection logic, thresholds and dashboard
+> can be exercised end-to-end and verified against known-good answers, fully
+> reproducibly and offline. Full provenance and the rationale for this approach
+> are documented in
 > [`docs/PROJECT_REPORT.md`](docs/PROJECT_REPORT.md#data-provenance).
 
 ---
