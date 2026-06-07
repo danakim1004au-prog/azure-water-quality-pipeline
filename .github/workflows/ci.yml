@@ -22,10 +22,10 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install pandas numpy pytest ruff
+          pip install pandas numpy scikit-learn pytest ruff
 
       - name: Lint
-        run: ruff check ingestion functions/anomaly_detector scripts tests
+        run: ruff check ingestion functions/anomaly_detector scripts tests ml
 
       - name: Run unit tests
         run: pytest tests/ -v
