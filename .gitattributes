@@ -1,0 +1,19 @@
+# Normalise line endings: store text files as LF in the repository,
+# regardless of the OS they were created on (Windows/macOS/Linux).
+* text=auto eol=lf
+
+# Explicit text types (kept as LF).
+*.py    text eol=lf
+*.md    text eol=lf
+*.csv   text eol=lf
+*.sql   text eol=lf
+*.json  text eol=lf
+*.tf    text eol=lf
+*.yml   text eol=lf
+*.yaml  text eol=lf
+
+# Binary files — never touch their bytes.
+*.png   binary
+*.jpg   binary
+*.pbix  binary
+*.xlsx  binary
