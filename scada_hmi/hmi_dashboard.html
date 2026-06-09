@@ -1,0 +1,545 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>AquaSentry — SCADA HMI + AI Overlay</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+  :root {
+    --bg:       #0d1117;
+    --panel:    #161b22;
+    --border:   #30363d;
+    --text:     #e6edf3;
+    --muted:    #8b949e;
+    --blue:     #58a6ff;
+    --green:    #3fb950;
+    --yellow:   #d29922;
+    --red:      #f85149;
+    --purple:   #bc8cff;
+    --teal:     #39d353;
+    --radius:   8px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', system-ui, sans-serif; font-size: 14px; }
+
+  /* ── Header ── */
+  header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 12px 24px; background: var(--panel);
+    border-bottom: 1px solid var(--border); position: sticky; top: 0; z-index: 100;
+  }
+  .logo { font-size: 18px; font-weight: 700; color: var(--blue); letter-spacing: 1px; }
+  .logo span { color: var(--muted); font-weight: 400; font-size: 13px; margin-left: 8px; }
+  .live-badge {
+    display: flex; align-items: center; gap: 6px;
+    font-size: 12px; color: var(--green);
+  }
+  .live-dot { width: 8px; height: 8px; background: var(--green); border-radius: 50%; animation: pulse 1.5s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.3} }
+  #clock { color: var(--muted); font-size: 12px; font-family: monospace; }
+
+  /* ── KPI bar ── */
+  .kpi-bar {
+    display: flex; gap: 12px; padding: 12px 24px;
+    background: var(--panel); border-bottom: 1px solid var(--border);
+  }
+  .kpi {
+    flex: 1; background: var(--bg); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 10px 16px;
+    display: flex; flex-direction: column; gap: 2px;
+  }
+  .kpi-label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .5px; }
+  .kpi-value { font-size: 24px; font-weight: 700; }
+  .kpi-value.critical { color: var(--red); }
+  .kpi-value.watch    { color: var(--yellow); }
+  .kpi-value.normal   { color: var(--green); }
+  .kpi-value.neutral  { color: var(--blue); }
+  .kpi-sub { font-size: 11px; color: var(--muted); }
+
+  /* ── Main layout ── */
+  main { display: grid; grid-template-columns: 280px 1fr; gap: 0; height: calc(100vh - 100px); }
+
+  /* ── Well list ── */
+  #well-list {
+    background: var(--panel); border-right: 1px solid var(--border);
+    overflow-y: auto; padding: 12px;
+  }
+  .well-list-title { font-size: 11px; color: var(--muted); text-transform: uppercase;
+    letter-spacing: .5px; padding: 4px 8px 8px; }
+  .well-card {
+    border: 1px solid var(--border); border-radius: var(--radius);
+    padding: 10px 12px; margin-bottom: 8px; cursor: pointer;
+    transition: border-color .15s, background .15s;
+  }
+  .well-card:hover  { border-color: var(--blue); background: #1c2128; }
+  .well-card.active { border-color: var(--blue); background: #1c2128; }
+  .well-card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; }
+  .well-name  { font-weight: 600; font-size: 13px; }
+  .status-badge {
+    font-size: 10px; font-weight: 700; padding: 2px 7px;
+    border-radius: 10px; text-transform: uppercase;
+  }
+  .status-badge.Critical { background: rgba(248,81,73,.2); color: var(--red); border: 1px solid var(--red); }
+  .status-badge.Watch    { background: rgba(210,153,34,.2); color: var(--yellow); border: 1px solid var(--yellow); }
+  .status-badge.Normal   { background: rgba(63,185,80,.15); color: var(--green); border: 1px solid var(--green); }
+  .well-meta  { font-size: 11px; color: var(--muted); }
+  .well-live  { display: flex; gap: 12px; margin-top: 6px; }
+  .live-tag   { font-size: 11px; }
+  .live-tag span { color: var(--blue); font-weight: 600; }
+  .forecast-delta { font-size: 11px; margin-top: 4px; }
+  .delta-up   { color: var(--yellow); }   /* level rising = deeper = potential issue */
+  .delta-down { color: var(--green); }    /* level falling = recovering */
+
+  /* ── Detail panel ── */
+  #detail {
+    overflow-y: auto; padding: 20px 24px;
+    display: flex; flex-direction: column; gap: 16px;
+  }
+  .detail-header { display: flex; justify-content: space-between; align-items: flex-start; }
+  .detail-title  { font-size: 20px; font-weight: 700; }
+  .detail-sub    { font-size: 12px; color: var(--muted); margin-top: 2px; }
+
+  /* AI overlay banner */
+  .ai-banner {
+    background: linear-gradient(135deg, #1a1f2e, #1c2338);
+    border: 1px solid #2d3561; border-radius: var(--radius);
+    padding: 12px 16px; display: flex; gap: 20px; flex-wrap: wrap;
+  }
+  .ai-tag { display: flex; flex-direction: column; gap: 2px; }
+  .ai-tag-label { font-size: 10px; color: #8b9bbf; text-transform: uppercase; letter-spacing: .5px; }
+  .ai-tag-value { font-size: 18px; font-weight: 700; color: var(--purple); }
+  .ai-tag-sub   { font-size: 11px; color: var(--muted); }
+
+  /* Charts grid */
+  .charts-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .chart-panel {
+    background: var(--panel); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 14px;
+  }
+  .chart-title {
+    font-size: 12px; font-weight: 600; color: var(--muted);
+    text-transform: uppercase; letter-spacing: .5px; margin-bottom: 10px;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .chart-title .ai-pill {
+    background: rgba(188,140,255,.15); color: var(--purple);
+    font-size: 9px; padding: 1px 6px; border-radius: 8px;
+    border: 1px solid rgba(188,140,255,.3);
+  }
+  .chart-wrap { position: relative; height: 180px; }
+
+  /* Alerts panel */
+  .alerts-panel {
+    background: var(--panel); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 14px;
+  }
+  .alert-row {
+    display: flex; gap: 12px; align-items: flex-start;
+    padding: 8px 0; border-bottom: 1px solid var(--border);
+  }
+  .alert-row:last-child { border-bottom: none; }
+  .alert-sev {
+    font-size: 10px; font-weight: 700; padding: 2px 7px;
+    border-radius: 8px; white-space: nowrap; margin-top: 2px;
+  }
+  .alert-sev.CRITICAL { background: rgba(248,81,73,.2); color: var(--red); }
+  .alert-sev.WARNING  { background: rgba(210,153,34,.2); color: var(--yellow); }
+  .alert-type  { font-size: 12px; font-weight: 600; }
+  .alert-detail{ font-size: 11px; color: var(--muted); margin-top: 2px; }
+  .alert-date  { font-size: 10px; color: var(--muted); white-space: nowrap; margin-left: auto; }
+  .no-alerts   { color: var(--green); font-size: 12px; padding: 8px 0; }
+
+  /* SCADA live tags */
+  .scada-grid {
+    display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px;
+  }
+  .scada-tag {
+    background: var(--bg); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 10px 12px;
+  }
+  .scada-tag-label { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: .5px; }
+  .scada-tag-value { font-size: 20px; font-weight: 700; color: var(--teal); margin: 2px 0; font-family: monospace; }
+  .scada-tag-unit  { font-size: 10px; color: var(--muted); }
+
+  /* Loading state */
+  .loading { color: var(--muted); padding: 40px; text-align: center; font-size: 13px; }
+</style>
+</head>
+<body>
+
+<!-- ── Header ── -->
+<header>
+  <div>
+    <div class="logo">AquaSentry <span>SCADA HMI + AI Overlay</span></div>
+  </div>
+  <div style="display:flex;align-items:center;gap:20px;">
+    <div class="live-badge"><div class="live-dot"></div> LIVE SCADA</div>
+    <div id="clock">--:--:-- UTC</div>
+  </div>
+</header>
+
+<!-- ── KPI bar ── -->
+<div class="kpi-bar" id="kpi-bar">
+  <div class="kpi"><div class="kpi-label">Total Bores</div><div class="kpi-value neutral" id="k-total">—</div></div>
+  <div class="kpi"><div class="kpi-label">Critical</div><div class="kpi-value critical" id="k-crit">—</div></div>
+  <div class="kpi"><div class="kpi-label">Watch</div><div class="kpi-value watch" id="k-watch">—</div></div>
+  <div class="kpi"><div class="kpi-label">Normal</div><div class="kpi-value normal" id="k-norm">—</div></div>
+  <div class="kpi"><div class="kpi-label">Avg Level (mBGL)</div><div class="kpi-value neutral" id="k-level">—</div><div class="kpi-sub">Fleet average</div></div>
+  <div class="kpi"><div class="kpi-label">Data as of</div><div class="kpi-value neutral" style="font-size:14px;padding-top:4px;" id="k-date">—</div></div>
+</div>
+
+<!-- ── Main ── -->
+<main>
+  <!-- Well list -->
+  <div id="well-list">
+    <div class="well-list-title">Monitoring Bores</div>
+    <div id="well-cards"><div class="loading">Loading…</div></div>
+  </div>
+
+  <!-- Detail panel -->
+  <div id="detail">
+    <div class="loading" id="detail-placeholder">← Select a bore to view AI overlay + SCADA tags</div>
+  </div>
+</main>
+
+<script>
+// ── State ──
+const API = '';   // same origin
+let fleetData  = [];
+let activeWell = null;
+let charts     = {};
+let ws         = null;
+let scadaTags  = {};   // well_id → latest SCADA tick
+
+// ── Clock ──
+function updateClock() {
+  document.getElementById('clock').textContent =
+    new Date().toUTCString().split(' ')[4] + ' UTC';
+}
+setInterval(updateClock, 1000);
+updateClock();
+
+// ── Boot ──
+async function boot() {
+  await loadFleet();
+  await loadSummary();
+  connectWebSocket();
+}
+
+// ── Fleet ──
+async function loadFleet() {
+  const res = await fetch(`${API}/api/fleet`);
+  fleetData = await res.json();
+  renderWellCards();
+  if (fleetData.length > 0) selectWell(fleetData[0].well_id);
+}
+
+async function loadSummary() {
+  const s = await fetch(`${API}/api/summary`).then(r=>r.json());
+  document.getElementById('k-total').textContent  = s.total_bores;
+  document.getElementById('k-crit').textContent   = s.critical;
+  document.getElementById('k-watch').textContent  = s.watch;
+  document.getElementById('k-norm').textContent   = s.normal;
+  document.getElementById('k-level').textContent  = s.avg_level_mbgl + ' m';
+  document.getElementById('k-date').textContent   = s.as_of;
+}
+
+// ── Well cards ──
+function renderWellCards() {
+  const container = document.getElementById('well-cards');
+  container.innerHTML = '';
+  fleetData.forEach(w => {
+    const deltaClass = w.forecast_delta > 0 ? 'delta-up' : 'delta-down';
+    const deltaSign  = w.forecast_delta > 0 ? '▲' : '▼';
+    const card = document.createElement('div');
+    card.className = 'well-card';
+    card.id = `card-${w.well_id}`;
+    card.innerHTML = `
+      <div class="well-card-header">
+        <div class="well-name">${w.location_name}</div>
+        <div class="status-badge ${w.status}">${w.status}</div>
+      </div>
+      <div class="well-meta">${w.aquifer_name} · ${w.management_area}</div>
+      <div class="well-live">
+        <div class="live-tag">Level <span id="live-lvl-${w.well_id}">${w.latest_reading.level_mbgl}</span> mBGL</div>
+        <div class="live-tag">TDS <span id="live-tds-${w.well_id}">${w.latest_reading.tds_mg_per_l}</span> mg/L</div>
+      </div>
+      ${w.forecast_30d !== null ? `
+      <div class="forecast-delta ${deltaClass}">
+        AI 30d forecast: ${w.forecast_30d} mBGL
+        (${deltaSign} ${Math.abs(w.forecast_delta)} m)
+      </div>` : ''}
+    `;
+    card.addEventListener('click', () => selectWell(w.well_id));
+    container.appendChild(card);
+  });
+}
+
+// ── Select well ──
+async function selectWell(wellId) {
+  // Highlight card
+  document.querySelectorAll('.well-card').forEach(c=>c.classList.remove('active'));
+  const card = document.getElementById(`card-${wellId}`);
+  if (card) card.classList.add('active');
+
+  activeWell = wellId;
+  destroyCharts();
+
+  const detail = document.getElementById('detail');
+  detail.innerHTML = '<div class="loading">Loading bore data…</div>';
+
+  const data = await fetch(`${API}/api/well/${wellId}`).then(r=>r.json());
+  renderDetail(data);
+}
+
+// ── Render detail ──
+function renderDetail(data) {
+  const { meta, status, latest_reading, history_90d, forecast_series, anomaly_trend, active_alerts } = data;
+  const fc30 = forecast_series.length ? forecast_series[forecast_series.length-1].predicted : null;
+  const delta = fc30 !== null ? (fc30 - latest_reading.level_mbgl).toFixed(3) : null;
+  const deltaStr = delta !== null
+    ? `${+delta > 0 ? '▲' : '▼'} ${Math.abs(delta)} m over 30 days`
+    : 'No forecast';
+  const anomScore = anomaly_trend.length
+    ? anomaly_trend[anomaly_trend.length-1].anomaly_score
+    : null;
+
+  document.getElementById('detail').innerHTML = `
+    <!-- Header -->
+    <div class="detail-header">
+      <div>
+        <div class="detail-title">${meta.location_name}</div>
+        <div class="detail-sub">
+          ${meta.aquifer_name} · ${meta.management_area}
+          ${meta.coastal_flag ? ' · <span style="color:var(--yellow)">⚠ Coastal bore</span>' : ''}
+          · ${meta.lat.toFixed(3)}, ${meta.lon.toFixed(3)}
+        </div>
+      </div>
+      <div class="status-badge ${status}" style="font-size:13px;padding:5px 14px;">${status}</div>
+    </div>
+
+    <!-- AI overlay banner -->
+    <div class="ai-banner">
+      <div class="ai-tag">
+        <div class="ai-tag-label">🤖 AI 30-Day Forecast</div>
+        <div class="ai-tag-value">${fc30 !== null ? fc30 + ' mBGL' : '—'}</div>
+        <div class="ai-tag-sub">${deltaStr}</div>
+      </div>
+      <div class="ai-tag">
+        <div class="ai-tag-label">🔍 Anomaly Score (IF)</div>
+        <div class="ai-tag-value" style="color:${anomScore !== null && anomScore < -0.2 ? 'var(--red)' : 'var(--purple)'}">
+          ${anomScore !== null ? anomScore : '—'}
+        </div>
+        <div class="ai-tag-sub">Isolation Forest · lower = more anomalous</div>
+      </div>
+      <div class="ai-tag">
+        <div class="ai-tag-label">📡 SCADA Level (live)</div>
+        <div class="ai-tag-value" id="ai-live-lvl" style="color:var(--teal)">—</div>
+        <div class="ai-tag-sub">Updates every 5 s</div>
+      </div>
+      <div class="ai-tag">
+        <div class="ai-tag-label">🧪 SCADA TDS (live)</div>
+        <div class="ai-tag-value" id="ai-live-tds" style="color:var(--teal)">—</div>
+        <div class="ai-tag-sub">mg/L via simulated OPC-UA</div>
+      </div>
+    </div>
+
+    <!-- SCADA tag grid -->
+    <div>
+      <div class="chart-title">SCADA Process Tags (Simulated OPC-UA Feed)</div>
+      <div class="scada-grid">
+        <div class="scada-tag">
+          <div class="scada-tag-label">Water Level</div>
+          <div class="scada-tag-value" id="tag-level">${latest_reading.level_mbgl}</div>
+          <div class="scada-tag-unit">mBGL</div>
+        </div>
+        <div class="scada-tag">
+          <div class="scada-tag-label">TDS / Salinity</div>
+          <div class="scada-tag-value" id="tag-tds">${latest_reading.tds_mg_per_l}</div>
+          <div class="scada-tag-unit">mg/L</div>
+        </div>
+        <div class="scada-tag">
+          <div class="scada-tag-label">Pump Speed</div>
+          <div class="scada-tag-value" id="tag-rpm">—</div>
+          <div class="scada-tag-unit">RPM</div>
+        </div>
+        <div class="scada-tag">
+          <div class="scada-tag-label">Valve Opening</div>
+          <div class="scada-tag-value" id="tag-valve">—</div>
+          <div class="scada-tag-unit">%</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Charts -->
+    <div class="charts-grid">
+      <div class="chart-panel">
+        <div class="chart-title">
+          Water Level — 90 Day History + AI Forecast
+          <span class="ai-pill">AI</span>
+        </div>
+        <div class="chart-wrap"><canvas id="chart-level"></canvas></div>
+      </div>
+      <div class="chart-panel">
+        <div class="chart-title">Anomaly Score — 30 Days <span class="ai-pill">AI</span></div>
+        <div class="chart-wrap"><canvas id="chart-anomaly"></canvas></div>
+      </div>
+    </div>
+
+    <!-- Alerts -->
+    <div class="alerts-panel">
+      <div class="chart-title">Active Rule-Based Alerts</div>
+      <div id="alerts-body">
+        ${active_alerts.length === 0
+          ? '<div class="no-alerts">✓ No active alerts for this bore</div>'
+          : active_alerts.map(a => `
+            <div class="alert-row">
+              <div class="alert-sev ${a.severity}">${a.severity}</div>
+              <div>
+                <div class="alert-type">${a.type}</div>
+                <div class="alert-detail">${a.detail}</div>
+              </div>
+              <div class="alert-date">${a.date}</div>
+            </div>`).join('')
+        }
+      </div>
+    </div>
+  `;
+
+  renderCharts(history_90d, forecast_series, anomaly_trend);
+  updateScadaUI(activeWell);   // fill from last received tick if any
+}
+
+// ── Charts ──
+function destroyCharts() {
+  Object.values(charts).forEach(c => c.destroy());
+  charts = {};
+}
+
+function renderCharts(history, forecast, anomaly) {
+  // Level + forecast chart
+  const histDates  = history.map(r => r.date);
+  const histLevels = history.map(r => r.level_mbgl);
+  const fcDates    = forecast.map(r => r.target_date);
+  const fcPred     = forecast.map(r => r.predicted);
+  const fcActual   = forecast.map(r => r.actual);
+
+  const levelCtx = document.getElementById('chart-level');
+  if (levelCtx) {
+    charts.level = new Chart(levelCtx, {
+      type: 'line',
+      data: {
+        labels: [...histDates, ...fcDates],
+        datasets: [
+          {
+            label: 'Observed (mBGL)',
+            data:  [...histLevels, ...Array(fcDates.length).fill(null)],
+            borderColor: '#58a6ff', borderWidth: 1.5,
+            pointRadius: 0, tension: 0.3,
+          },
+          {
+            label: 'AI Forecast (mBGL)',
+            data:  [...Array(histDates.length).fill(null), ...fcPred],
+            borderColor: '#bc8cff', borderWidth: 2, borderDash: [4,3],
+            pointRadius: 0, tension: 0.3,
+          },
+          {
+            label: 'Actual (forecast period)',
+            data:  [...Array(histDates.length).fill(null), ...fcActual],
+            borderColor: '#3fb950', borderWidth: 1,
+            pointRadius: 2, tension: 0.3,
+          },
+        ]
+      },
+      options: chartOpts('mBGL', true)
+    });
+  }
+
+  // Anomaly score
+  const anomCtx = document.getElementById('chart-anomaly');
+  if (anomCtx && anomaly.length) {
+    charts.anomaly = new Chart(anomCtx, {
+      type: 'bar',
+      data: {
+        labels: anomaly.map(r=>r.date),
+        datasets: [{
+          label: 'Anomaly Score',
+          data:  anomaly.map(r=>r.anomaly_score),
+          backgroundColor: anomaly.map(r =>
+            r.is_anomaly ? 'rgba(248,81,73,0.7)' : 'rgba(88,166,255,0.4)'
+          ),
+          borderRadius: 2,
+        }]
+      },
+      options: chartOpts('Score', false)
+    });
+  }
+}
+
+function chartOpts(yLabel, invertY) {
+  return {
+    responsive: true, maintainAspectRatio: false,
+    plugins: { legend: { labels: { color: '#8b949e', font: { size: 10 } } } },
+    scales: {
+      x: {
+        ticks: { color: '#8b949e', maxRotation: 0, autoSkip: true, maxTicksLimit: 6, font:{size:9} },
+        grid:  { color: '#21262d' },
+      },
+      y: {
+        reverse: invertY,
+        title:   { display: true, text: yLabel, color: '#8b949e', font:{size:10} },
+        ticks:   { color: '#8b949e', font:{size:9} },
+        grid:    { color: '#21262d' },
+      }
+    }
+  };
+}
+
+// ── WebSocket (live SCADA tick) ──
+function connectWebSocket() {
+  const proto = location.protocol === 'https:' ? 'wss' : 'ws';
+  ws = new WebSocket(`${proto}://${location.host}/ws/live`);
+
+  ws.onmessage = (event) => {
+    const msg = JSON.parse(event.data);
+    if (msg.type === 'scada_tick') {
+      msg.tags.forEach(tag => { scadaTags[tag.well_id] = tag; });
+      updateWellCardLive(msg.tags);
+      if (activeWell) updateScadaUI(activeWell);
+    }
+  };
+
+  ws.onclose = () => setTimeout(connectWebSocket, 3000);  // auto-reconnect
+}
+
+function updateWellCardLive(tags) {
+  tags.forEach(tag => {
+    const lvlEl = document.getElementById(`live-lvl-${tag.well_id}`);
+    const tdsEl = document.getElementById(`live-tds-${tag.well_id}`);
+    if (lvlEl) lvlEl.textContent = tag.tag_level.toFixed(3);
+    if (tdsEl) tdsEl.textContent = tag.tag_tds.toFixed(1);
+  });
+}
+
+function updateScadaUI(wellId) {
+  const tag = scadaTags[wellId];
+  if (!tag) return;
+
+  const set = (id, val) => {
+    const el = document.getElementById(id);
+    if (el) el.textContent = val;
+  };
+  set('tag-level',    tag.tag_level.toFixed(3));
+  set('tag-tds',      tag.tag_tds.toFixed(1));
+  set('tag-rpm',      tag.tag_pump_rpm);
+  set('tag-valve',    tag.tag_valve_pct);
+  set('ai-live-lvl',  tag.tag_level.toFixed(3) + ' mBGL');
+  set('ai-live-tds',  tag.tag_tds.toFixed(1) + ' mg/L');
+}
+
+// ── Go ──
+boot();
+</script>
+</body>
+</html>
