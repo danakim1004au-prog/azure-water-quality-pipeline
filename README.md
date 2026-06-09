@@ -51,6 +51,12 @@ KPI cards and a status map for an at-a-glance operational picture.
 <img width="1274" height="655" alt="02_overview" src="https://github.com/user-attachments/assets/83662c44-b6af-4e48-944d-29a83e6e41f2" />
 
 
+**How the data fits together** — a clean star-style model: `monitoring_wells`
+and a `Date` dimension fanning out to the water-level, rainfall and anomaly
+fact tables.
+
+![Power BI data model](powerbi/screenshots/01_data_model.png)
+
 **Is the aquifer recharging?** — water level with its 7-day moving average
 (mBGL: higher values mean deeper, plotted downward), alongside daily and
 7-day cumulative rainfall. Winter rainfall peaks line up with the water-table
