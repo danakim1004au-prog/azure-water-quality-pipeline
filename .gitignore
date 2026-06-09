@@ -39,6 +39,10 @@ ml/artifacts/*.joblib
 *.pbix.tmp
 ~$*.pbix
 
+# Local-only HTML mockup used to regenerate dashboard screenshots
+# (not part of the published project; the real deliverable is the .pbix)
+powerbi/mockup/
+
 # OS / IDE
 .DS_Store
 .vscode/

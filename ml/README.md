@@ -36,11 +36,11 @@ horizon as it learns the seasonal recharge cycle persistence cannot see.
 
 | Horizon | Model MAE | Persistence MAE | Improvement |
 |--------:|----------:|----------------:|------------:|
-| 7 days  | 0.130 m   | 0.121 m         | −7.8 %      |
-| 14 days | 0.167 m   | 0.147 m         | −13.6 %     |
-| 30 days | 0.198 m   | 0.202 m         | **+2.0 %**  |
-| 45 days | 0.214 m   | 0.244 m         | **+12.3 %** |
-| 60 days | 0.216 m   | 0.297 m         | **+27.3 %** |
+| 7 days  | 0.138 m   | 0.124 m         | −11.5 %     |
+| 14 days | 0.169 m   | 0.151 m         | −12.1 %     |
+| 30 days | 0.204 m   | 0.208 m         | **+1.8 %**  |
+| 45 days | 0.214 m   | 0.250 m         | **+14.4 %** |
+| 60 days | 0.229 m   | 0.304 m         | **+24.5 %** |
 
 ![Actual vs predicted water level](artifacts/forecast_example.png)
 

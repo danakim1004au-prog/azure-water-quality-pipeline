@@ -1,7 +1,7 @@
 well_id,source_dh_no,location_name,latitude,longitude,aquifer_name,management_area,coastal_flag
-1,DH6621,Adelaide Plains AP-01,-34.78,138.62,T1 Sand,Central Adelaide,0
-2,DH6622,Adelaide Plains AP-02,-34.83,138.58,T2 Sand,Central Adelaide,0
-3,DH6623,Barossa BV-01,-34.53,138.95,Fractured Rock,Barossa,0
-4,DH6624,Barossa BV-02,-34.49,138.99,Fractured Rock,Barossa,0
-5,DH6625,McLaren Vale MV-01,-35.21,138.54,Maslin Sand,McLaren Vale,1
-6,DH6626,McLaren Vale MV-02,-35.24,138.51,Port Willunga Fm,McLaren Vale,1
+1,DH6621,Virginia NAP-01,-34.667,138.553,T1 Sand,Northern Adelaide Plains,0
+2,DH6622,Angle Vale NAP-02,-34.648,138.643,T2 Sand,Northern Adelaide Plains,0
+3,DH6623,Nuriootpa BAR-01,-34.476,138.996,Fractured Rock,Barossa,0
+4,DH6624,Tanunda BAR-02,-34.523,138.96,Fractured Rock,Barossa,0
+5,DH6625,Maslin Beach MLV-01,-35.225,138.47,Maslin Sand,McLaren Vale,1
+6,DH6626,Port Willunga MLV-02,-35.28,138.462,Port Willunga Fm,McLaren Vale,1

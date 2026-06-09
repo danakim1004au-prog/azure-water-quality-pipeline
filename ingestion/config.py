@@ -19,17 +19,17 @@ from datetime import date, timedelta
 # discovered via the groundwater API (see groundwater_client.discover_wells).
 # ---------------------------------------------------------------------------
 MANAGEMENT_AREAS = [
-    "Central Adelaide",
+    "Northern Adelaide Plains",
     "Barossa",
     "McLaren Vale",
 ]
 
-# Public daily-rainfall stations near the study area.
+# Public daily-rainfall stations, one near each management area.
 # (station_id, friendly name)
 RAINFALL_STATIONS = [
-    ("23090", "Kent Town"),
-    ("18201", "Port Augusta"),
-    ("18012", "Ceduna"),
+    ("23083", "Edinburgh"),   # Northern Adelaide Plains
+    ("23321", "Nuriootpa"),   # Barossa
+    ("23753", "Willunga"),    # McLaren Vale
 ]
 
 

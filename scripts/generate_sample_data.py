@@ -32,16 +32,27 @@ END = date.today()
 DAYS = (END - START).days
 
 # Wells: (well_id, name, lat, lon, aquifer, area, coastal)
+# Coordinates sit at real localities inside each prescribed wells area, so the
+# map and the management-area label always agree. The aquifer names match each
+# area's real hydrogeology (Tertiary T1/T2 sands on the Northern Adelaide
+# Plains; fractured rock in the Barossa; the Maslin Sands / Port Willunga
+# Formation along the McLaren Vale coast).
 WELLS = [
-    (1, "Adelaide Plains AP-01", -34.78, 138.62, "T1 Sand", "Central Adelaide", 0),
-    (2, "Adelaide Plains AP-02", -34.83, 138.58, "T2 Sand", "Central Adelaide", 0),
-    (3, "Barossa BV-01", -34.53, 138.95, "Fractured Rock", "Barossa", 0),
-    (4, "Barossa BV-02", -34.49, 138.99, "Fractured Rock", "Barossa", 0),
-    (5, "McLaren Vale MV-01", -35.21, 138.54, "Maslin Sand", "McLaren Vale", 1),
-    (6, "McLaren Vale MV-02", -35.24, 138.51, "Port Willunga Fm", "McLaren Vale", 1),
+    (1, "Virginia NAP-01", -34.667, 138.553, "T1 Sand", "Northern Adelaide Plains", 0),
+    (2, "Angle Vale NAP-02", -34.648, 138.643, "T2 Sand", "Northern Adelaide Plains", 0),
+    (3, "Nuriootpa BAR-01", -34.476, 138.996, "Fractured Rock", "Barossa", 0),
+    (4, "Tanunda BAR-02", -34.523, 138.960, "Fractured Rock", "Barossa", 0),
+    (5, "Maslin Beach MLV-01", -35.225, 138.470, "Maslin Sand", "McLaren Vale", 1),
+    (6, "Port Willunga MLV-02", -35.280, 138.462, "Port Willunga Fm", "McLaren Vale", 1),
 ]
 
-STATIONS = [("23090", "Kent Town"), ("18201", "Port Augusta"), ("18012", "Ceduna")]
+# Daily-rainfall stations, one near each area (so the rainfall signal is local
+# to the bores it explains, not from the far north/west of the state).
+STATIONS = [
+    ("23083", "Edinburgh"),   # Northern Adelaide Plains
+    ("23321", "Nuriootpa"),   # Barossa
+    ("23753", "Willunga"),    # McLaren Vale
+]
 
 
 def daterange():

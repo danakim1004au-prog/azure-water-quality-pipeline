@@ -1,4 +1,4 @@
-# Project Report — Regional Water Quality & Groundwater Monitoring Pipeline
+# Project Report — AquaSentry: Multi-Aquifer Groundwater Monitoring & Forecasting
 
 A detailed technical report covering the problem context, architecture, data
 provenance, analytical methodology, the deployed Azure environment, and how to
@@ -8,7 +8,7 @@ reproduce the work.
 
 ## 1. Executive summary
 
-Regional water security depends on continuously monitoring dozens of
+Water security depends on continuously monitoring dozens of
 groundwater systems: understanding how each aquifer responds to rainfall,
 detecting when a bore is being drawn down faster than it can recharge, and
 catching the early signature of saline intrusion before it becomes
@@ -97,12 +97,19 @@ public sources. Endpoints are configurable via environment variables in
 | Source | What it provides | Access method | Licence |
 |--------|------------------|---------------|---------|
 | **WaterConnect** (state groundwater portal) | Drillhole metadata, water level (metres below ground level) and salinity (total dissolved solids, mg/L) | REST endpoint, or the typed `sa_gwdata` helper library | Creative Commons Attribution |
-| **SILO** (national gridded climate service) | Daily rainfall by station — Kent Town (23090), Port Augusta (18201), Ceduna (18012) | HTTP CSV request with contact email for attribution | Open / Creative Commons |
+| **SILO** (national gridded climate service) | Daily rainfall by station — Edinburgh (23083), Nuriootpa (23321), Willunga (23753), one near each management area | HTTP CSV request with contact email for attribution | Open / Creative Commons |
 | **water.data.sa.gov.au** (surface-water portal) | Near-real-time river and reservoir levels | Bulk export API | Open |
 
-Target study area: the Central Adelaide, Barossa and McLaren Vale groundwater
-management areas — all real, publicly-defined prescribed water areas. The
-station identifiers and management-area names used in the project are genuine.
+Target study area: the **Northern Adelaide Plains, Barossa and McLaren Vale**
+groundwater management areas, within the Adelaide & Mount Lofty Ranges region —
+all real, publicly-defined prescribed wells areas. Bore coordinates sit at
+genuine localities inside each area (Virginia and Angle Vale on the plains;
+Nuriootpa and Tanunda in the Barossa; Maslin Beach and Port Willunga on the
+coast), and the aquifer names reflect each area's real hydrogeology (the
+Tertiary T1/T2 sands of the plains, the Barossa's fractured rock, and the
+Maslin Sands / Port Willunga Formation of the McLaren Vale coast). Station and
+drillhole identifiers are representative of these areas and should be confirmed
+against a live API call before relying on real data (see Section 11).
 
 ### 4.2 Validating the pipeline: a schema-identical demonstration dataset
 
@@ -218,11 +225,11 @@ cycle that persistence cannot represent
 
 | Horizon | Model MAE | Persistence MAE | Improvement |
 |--------:|----------:|----------------:|------------:|
-| 7 days  | 0.130 m   | 0.121 m         | −7.8 %      |
-| 14 days | 0.167 m   | 0.147 m         | −13.6 %     |
-| 30 days | 0.198 m   | 0.202 m         | +2.0 %      |
-| 45 days | 0.214 m   | 0.244 m         | +12.3 %     |
-| 60 days | 0.216 m   | 0.297 m         | +27.3 %     |
+| 7 days  | 0.138 m   | 0.124 m         | −11.5 %     |
+| 14 days | 0.169 m   | 0.151 m         | −12.1 %     |
+| 30 days | 0.204 m   | 0.208 m         | +1.8 %      |
+| 45 days | 0.214 m   | 0.250 m         | +14.4 %     |
+| 60 days | 0.229 m   | 0.304 m         | +24.5 %     |
 
 The negative values at short horizons are reported deliberately and honestly:
 at close range the series is so autocorrelated that persistence is genuinely
@@ -260,8 +267,8 @@ water-level, rainfall and anomaly fact tables. The anomaly-to-date relationship
 is kept inactive so it can be invoked explicitly where needed without
 distorting the default filter context.
 
-### 7.2 Regional overview
-![Regional overview](../powerbi/screenshots/02_regional_overview.png)
+### 7.2 Operational overview
+![Operational overview across management areas](../powerbi/screenshots/02_overview.png)
 
 The at-a-glance operational view: KPI cards (bores monitored, critical and
 warning counts, average water level), a map of every bore coloured by status,
@@ -283,10 +290,6 @@ Low Recharge Response detector formalises.
 A rainfall-versus-water-level scatter and a per-bore table that rolls up to the
 current Normal / Watch / Critical classification, surfacing the bores carrying
 an active critical signal.
-
-The full build instructions (data model, DAX measures, visual-by-visual layout
-and colour scheme) are in
-[`powerbi/DASHBOARD_GUIDE.md`](../powerbi/DASHBOARD_GUIDE.md).
 
 ---
 
@@ -376,8 +379,7 @@ python ../scripts/apply_schema.py
 python ../scripts/load_sample_to_azure.py
 ```
 
-Point Power BI at the `sql_server_fqdn` Terraform output (see
-[`powerbi/DASHBOARD_GUIDE.md`](../powerbi/DASHBOARD_GUIDE.md)), then
+Point Power BI at the `sql_server_fqdn` Terraform output, then
 `terraform destroy` when finished.
 
 ---

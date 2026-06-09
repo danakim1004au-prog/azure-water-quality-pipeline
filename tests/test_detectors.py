@@ -50,7 +50,7 @@ def test_rapid_level_change_flags_spike():
             "water_level_mbgl": levels,
             "tds_mg_per_l": 500.0,
             "coastal_flag": 0,
-            "management_area": "Central Adelaide",
+            "management_area": "Northern Adelaide Plains",
         }
     )
     events = detectors.detect_rapid_level_change(readings)
@@ -69,7 +69,7 @@ def test_rapid_level_change_ignores_stable_series():
             "water_level_mbgl": levels,
             "tds_mg_per_l": 500.0,
             "coastal_flag": 0,
-            "management_area": "Central Adelaide",
+            "management_area": "Northern Adelaide Plains",
         }
     )
     assert detectors.detect_rapid_level_change(readings).empty
