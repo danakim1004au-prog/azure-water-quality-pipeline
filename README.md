@@ -1,9 +1,7 @@
 # AquaSentry — Multi-Aquifer Groundwater Monitoring & Forecasting
 
-**Monitors groundwater bores across three management areas of the Adelaide
-region, the Northern Adelaide Plains, the Barossa and the McLaren Vale coast
-forecasts supply pressure a month ahead, and surfaces critical anomalies the
-moment they appear.** An end-to-end Azure pipeline that turns public
+**Monitors groundwater bores across multiple management areas, forecasts supply
+pressure a month ahead, and surfaces critical anomalies the moment they appear.** An end-to-end Azure pipeline that turns public
 environmental data into decisions on a live Power BI dashboard.
 
 [![CI](https://github.com/danakim1004au-prog/azure-water-quality-pipeline/actions/workflows/ci.yml/badge.svg)](https://github.com/danakim1004au-prog/azure-water-quality-pipeline/actions/workflows/ci.yml)
@@ -34,7 +32,7 @@ future.
 
 | | |
 |---|---|
-| **Monitoring scope** | 6 bores · 3 management areas (Northern Adelaide Plains, Barossa, McLaren Vale) · 4 distinct aquifers · ~3 years of daily readings |
+| **Monitoring scope** | 6 bores · 3 management areas · 4 distinct aquifers · ~3 years of daily readings |
 | **Forecast skill** | Month-ahead level forecast at 0.20 m MAE; **+25 % over a naive baseline at the 60-day horizon** |
 | **Anomaly detection** | 3 explainable detectors **plus** an Isolation Forest that independently rediscovers injected faults |
 | **Cloud & quality** | Full stack as Terraform IaC · live Power BI **DirectQuery** to Azure SQL · **12 unit tests** green in CI |
@@ -53,9 +51,9 @@ KPI cards and a status map for an at-a-glance operational picture.
 
 
 **Is the aquifer recharging?** — water level with its 7-day moving average
-(axis inverted so a deeper table reads lower), above daily rainfall. Winter
-rainfall peaks line up with the water-table recovery: the recharge response,
-made visible.
+(mBGL: higher values mean deeper, plotted downward), alongside daily and
+7-day cumulative rainfall. Winter rainfall peaks line up with the water-table
+recovery: the recharge response, made visible.
 
 ![Groundwater trend and rainfall](powerbi/screenshots/03_groundwater_trend.png)
 
