@@ -1,7 +1,7 @@
 # AquaSentry — Multi-Aquifer Groundwater Monitoring & Forecasting
 
 **Monitors groundwater bores across three management areas of the Adelaide
-region — the Northern Adelaide Plains, the Barossa and the McLaren Vale coast —
+region — the Northern Adelaide Plains, the Barossa and the McLaren Vale coast
 forecasts supply pressure a month ahead, and surfaces critical anomalies the
 moment they appear.** An end-to-end Azure pipeline that turns public
 environmental data into decisions on a live Power BI dashboard.
@@ -14,8 +14,6 @@ environmental data into decisions on a live Power BI dashboard.
 ![scikit-learn](https://img.shields.io/badge/scikit--learn-forecast%20%2B%20anomaly-F7931E?logo=scikitlearn&logoColor=white)
 ![Tests](https://img.shields.io/badge/tests-12%20passing-2E8B57)
 
-![AquaSentry groundwater monitoring dashboard](powerbi/screenshots/02_overview.png)
-
 ---
 
 ## Overview
@@ -23,7 +21,7 @@ environmental data into decisions on a live Power BI dashboard.
 Groundwater is slow-moving and easily degraded: by the time a problem is
 obvious in a single reading, the underlying trend is usually well established.
 AquaSentry continuously ingests public groundwater, rainfall and surface-water
-data, scores it for the failure modes that matter — over-extraction, stalled
+data, scores it for the failure modes that matter, over-extraction, stalled
 recharge, saline intrusion — **and forecasts where each bore is heading**, so
 operators can act before a constraint becomes a crisis rather than after.
 
@@ -51,7 +49,8 @@ live Azure SQL warehouse rather than an imported snapshot.
 **Where to act today** — bores by status across every management area, with
 KPI cards and a status map for an at-a-glance operational picture.
 
-![Status overview across management areas](powerbi/screenshots/02_overview.png)
+<img width="1274" height="655" alt="02_overview" src="https://github.com/user-attachments/assets/83662c44-b6af-4e48-944d-29a83e6e41f2" />
+
 
 **Is the aquifer recharging?** — water level with its 7-day moving average
 (axis inverted so a deeper table reads lower), above daily rainfall. Winter
@@ -138,7 +137,7 @@ seasonal recharge cycle:
 
 **Unsupervised anomaly detection.** An Isolation Forest learns the joint shape
 of normal behaviour across level, salinity, their rates of change and rainfall,
-and flags points that don't fit — no labels, no thresholds. It independently
+and flags points that don't fit, no labels, no thresholds. It independently
 rediscovers the deliberately-injected anomaly scenarios used to validate it.
 
 > **Why both?** Transparent rules give auditable alerts for the faults you can
