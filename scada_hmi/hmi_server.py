@@ -1,25 +1,28 @@
 """
 AquaSentry SCADA HMI Server
 ============================
-Serves real-time SCADA tag data alongside ML predictions and anomaly scores
-via a REST + WebSocket API consumed by the HMI overlay (hmi_dashboard.html).
+Serves live SCADA tag data alongside ML predictions and anomaly scores via a
+REST + WebSocket API consumed by the HMI overlay (hmi_dashboard.html).
 
-Data sources (offline demo):
-  - sample_data/water_level_readings.csv   → simulates live SCADA tag feed
+Live process tags are acquired over a real **OPC-UA subscription** to the
+field server (opcua_server.py) via opcua_client.py — the SCADA data-
+acquisition path. The remaining context comes from the existing pipeline:
   - ml/artifacts/forecast_predictions.csv → 30-day ahead ML forecast
   - ml/artifacts/anomaly_scores.csv       → Isolation Forest scores
   - sample_data/anomaly_events.csv        → rule-based detector events
   - sample_data/monitoring_wells.csv      → well metadata (lat/lon, aquifer)
+  - sample_data/water_level_readings.csv  → history + OPC-UA-down fallback
 
-In a production deployment the SCADA tag feed would be replaced by an
-OPC-UA subscription or Azure IoT Hub event stream.
+In production the OPC-UA endpoint points at the real PLC/RTU OPC-UA server
+or an Azure IoT Hub OPC-UA bridge; no application code changes are required.
 """
 
 from __future__ import annotations
 
 import asyncio
 import json
-import os
+import sys
+from contextlib import asynccontextmanager
 from datetime import date, datetime, timedelta
 from pathlib import Path
 from typing import Any
@@ -30,6 +33,14 @@ from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
+
+import logging
+
+logging.getLogger("asyncua").setLevel(logging.WARNING)  # silence nodeset noise
+
+# Allow `from opcua_client import ...` when run as `python scada_hmi/hmi_server.py`
+sys.path.insert(0, str(Path(__file__).parent))
+from opcua_client import TagCache, run_opcua_client  # noqa: E402
 
 # ---------------------------------------------------------------------------
 # Paths
@@ -161,9 +172,31 @@ def _fleet_snapshot() -> list[dict[str, Any]]:
     return snapshot
 
 # ---------------------------------------------------------------------------
+# OPC-UA data-acquisition: live tag cache fed by a real OPC-UA subscription
+# ---------------------------------------------------------------------------
+tag_cache = TagCache()
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Start the OPC-UA client subscription for the life of the server."""
+    stop = asyncio.Event()
+    task = asyncio.create_task(run_opcua_client(tag_cache, stop))
+    try:
+        yield
+    finally:
+        stop.set()
+        task.cancel()
+        try:
+            await task
+        except asyncio.CancelledError:
+            pass
+
+
+# ---------------------------------------------------------------------------
 # FastAPI app
 # ---------------------------------------------------------------------------
-app = FastAPI(title="AquaSentry SCADA HMI", version="1.0.0")
+app = FastAPI(title="AquaSentry SCADA HMI", version="2.0.0", lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
@@ -234,6 +267,29 @@ def alerts():
     return _active_alerts()
 
 
+@app.get("/api/scada/live")
+def scada_live():
+    """Current SCADA tag values from the OPC-UA subscription (curl-testable)."""
+    return {
+        "source":      "OPC-UA" if tag_cache.connected else "fallback",
+        "connected":   tag_cache.connected,
+        "last_update": tag_cache.last_update,
+        "tags":        _build_scada_tags(),
+    }
+
+
+@app.get("/api/opcua/status")
+def opcua_status():
+    """OPC-UA acquisition health for the HMI connection badge."""
+    return {
+        "connected":   tag_cache.connected,
+        "last_update": tag_cache.last_update,
+        "tag_count":   sum(
+            1 for v in tag_cache.snapshot().values() if "level" in v
+        ),
+    }
+
+
 @app.get("/api/summary")
 def summary():
     """KPI summary for the fleet header bar."""
@@ -300,25 +356,36 @@ async def websocket_live(ws: WebSocket):
 
 def _build_scada_tags() -> list[dict[str, Any]]:
     """
-    Simulate SCADA tag values with small random walk from last known reading.
-    In production: read from OPC-UA node or IoT Hub telemetry.
+    Build the SCADA tag list from the live OPC-UA subscription cache.
+
+    If the OPC-UA server is unreachable, fall back to each bore's last stored
+    reading and flag the quality as 'Uncertain' so the HMI shows degraded data
+    honestly rather than silently inventing values.
     """
-    import random
+    snap = tag_cache.snapshot()
     tags = []
     for _, w in wells.iterrows():
         wid = int(w["well_id"])
-        rdg = _latest_reading(wid)
+        t = snap.get(wid, {})
+        if "level" not in t:  # OPC-UA not yet connected → fallback
+            rdg = _latest_reading(wid)
+            t = {
+                "level": rdg["level_mbgl"], "tds": rdg["tds_mg_per_l"],
+                "pump": 0, "valve": 0, "quality": "Uncertain",
+            }
         tags.append({
-            "well_id":      wid,
-            "location":     w["location_name"],
-            "tag_level":    round(rdg["level_mbgl"] + random.uniform(-0.02, 0.02), 3),
-            "tag_tds":      round(rdg["tds_mg_per_l"] + random.uniform(-1.0, 1.0), 1),
-            "tag_pump_rpm": random.choice([0, 0, 1450, 1450, 1450]),  # 0 = off
-            "tag_valve_pct":random.choice([0, 0, 75, 100]),
-            "quality":      "Good",
+            "well_id":       wid,
+            "location":      w["location_name"],
+            "tag_level":     round(float(t.get("level", 0)), 3),
+            "tag_tds":       round(float(t.get("tds", 0)), 1),
+            "tag_pump_rpm":  int(t.get("pump", 0)),
+            "tag_valve_pct": int(t.get("valve", 0)),
+            "quality":       t.get("quality", "Good"),
+            "source":        "OPC-UA" if tag_cache.connected else "fallback",
         })
     return tags
 
 
 if __name__ == "__main__":
-    uvicorn.run("hmi_server:app", host="0.0.0.0", port=8080, reload=True)
+    # No reload: the OPC-UA client runs as a lifespan background task.
+    uvicorn.run(app, host="0.0.0.0", port=8080)

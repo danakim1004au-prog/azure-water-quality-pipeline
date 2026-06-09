@@ -10,7 +10,7 @@ environmental data into decisions on a live Power BI dashboard.
 ![Power BI](https://img.shields.io/badge/Power%20BI-DirectQuery-F2C811?logo=powerbi&logoColor=black)
 ![Python](https://img.shields.io/badge/Python-3.11-3776AB?logo=python&logoColor=white)
 ![scikit-learn](https://img.shields.io/badge/scikit--learn-forecast%20%2B%20anomaly-F7931E?logo=scikitlearn&logoColor=white)
-![SCADA HMI](https://img.shields.io/badge/SCADA%20HMI-FastAPI%20%C2%B7%20WebSocket-009688?logo=fastapi&logoColor=white)
+![SCADA HMI](https://img.shields.io/badge/SCADA%20HMI-OPC--UA%20%C2%B7%20FastAPI%20%C2%B7%20WebSocket-009688?logo=fastapi&logoColor=white)
 ![Tests](https://img.shields.io/badge/tests-12%20passing-2E8B57)
 
 ---
@@ -155,7 +155,7 @@ live via DirectQuery.
 
 ---
 
-## Real-time SCADA HMI with AI overlay
+## Real-time SCADA HMI with OPC-UA + AI overlay
 
 Beyond the daily batch dashboard, the platform includes a **web-based SCADA
 HMI** that overlays the machine-learning outputs directly onto live process
@@ -163,28 +163,38 @@ tags — a single operator screen where forecasts and anomaly scores sit next to
 the real-time level, salinity, pump and valve readings, with no need to switch
 between a SCADA workstation and a separate BI tool.
 
+Process tags are acquired over a **real OPC-UA subscription** — the same
+industrial protocol used by production SCADA historians and HMIs — not a
+mocked in-process feed:
+
 ```
-SCADA RTU/PLC ──OPC-UA──► Azure IoT Hub ► Stream Analytics ──► HMI server ──► operator HMI
- level · TDS · pump · valve          real-time tag stream      (FastAPI + WebSocket)   (live AI overlay)
+OPC-UA server (field/RTU layer)  ──opc.tcp──►  OPC-UA client subscription  ──►  HMI  ──WebSocket──►  operator browser
+ 6 bores × {level, TDS, pump, valve}            (data-change notifications)     (FastAPI)            (live AI overlay)
 ```
 
-- **Monitor** — live SCADA tags stream to the HMI over a WebSocket and refresh
-  every few seconds, mirroring a control-room tag feed.
+- **Monitor** — a standards-compliant OPC-UA server exposes one object per
+  bore; the HMI subscribes as an OPC-UA client and receives **data-change
+  notifications**, which stream on to the browser over a WebSocket.
 - **Detect** — each bore is shown with its **30-day ML forecast** and
-  **Isolation Forest anomaly score** alongside the live reading, so divergence
-  from expected behaviour is visible the moment it appears.
+  **Isolation Forest anomaly score** alongside the live OPC-UA reading, so
+  divergence from expected behaviour is visible the moment it appears.
 - **Respond** — active rule-based alerts (rapid level change, low recharge,
-  salinity intrusion) surface on the same screen; the documented production path
-  adds a bidirectional **OPC-UA** control loop for pump/valve actuation.
+  salinity intrusion) surface on the same screen; the pump and valve nodes are
+  exposed as **writable**, leaving a clear path to closed-loop supervisory
+  control.
 
-The demo runs entirely offline against the sample data and ML artifacts; the
-simulated tag feed is swapped for a real **OPC-UA subscription** or **Azure IoT
-Hub** consumer in production without changing the front end. Full design and
-production roadmap: [`scada_hmi/SCADA_HMI_REPORT.md`](scada_hmi/SCADA_HMI_REPORT.md).
+The OPC-UA server stands in for the PLC/RTU layer, advancing realistic tag
+values seeded from real readings (no physical sensors are attached, so the
+*values* are simulated — but the *protocol path* is genuine OPC-UA). In
+production the HMI's OPC-UA endpoint is simply repointed at the real field
+server or an **Azure IoT Hub OPC-UA bridge**, with no application-code change.
+Full design and production roadmap:
+[`scada_hmi/SCADA_HMI_REPORT.md`](scada_hmi/SCADA_HMI_REPORT.md).
 
 ```bash
 pip install -r scada_hmi/requirements.txt
-python scada_hmi/hmi_server.py        # then open http://localhost:8080
+python scada_hmi/opcua_server.py      # terminal 1 — field OPC-UA server
+python scada_hmi/hmi_server.py        # terminal 2 — HMI + OPC-UA client; open http://localhost:8080
 ```
 
 ---
@@ -241,7 +251,7 @@ azure-water-quality-pipeline/
 ├── logic_apps/       # CRITICAL-event email/Teams alert workflow
 ├── sql/              # Schema, views, audit table, stored procedures
 ├── powerbi/          # Dashboard screenshots
-├── scada_hmi/        # Real-time SCADA HMI (FastAPI + WebSocket) with AI overlay
+├── scada_hmi/        # Real-time SCADA HMI: OPC-UA server + client, FastAPI/WebSocket, AI overlay
 ├── scripts/          # Sample-data generator, offline runner, Azure loaders
 ├── tests/            # Unit tests for the detectors and the ML models
 ├── docs/             # Project report + anomaly methodology

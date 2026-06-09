@@ -174,7 +174,7 @@
     <div class="logo">AquaSentry <span>SCADA HMI + AI Overlay</span></div>
   </div>
   <div style="display:flex;align-items:center;gap:20px;">
-    <div class="live-badge"><div class="live-dot"></div> LIVE SCADA</div>
+    <div class="live-badge"><div class="live-dot"></div> <span id="opcua-status">LIVE · OPC-UA</span></div>
     <div id="clock">--:--:-- UTC</div>
   </div>
 </header>
@@ -225,6 +225,24 @@ async function boot() {
   await loadFleet();
   await loadSummary();
   connectWebSocket();
+  pollOpcuaStatus();
+  setInterval(pollOpcuaStatus, 5000);
+}
+
+// ── OPC-UA connection badge ──
+async function pollOpcuaStatus() {
+  try {
+    const s = await fetch(`${API}/api/opcua/status`).then(r=>r.json());
+    const el = document.getElementById('opcua-status');
+    const dot = document.querySelector('.live-dot');
+    if (s.connected) {
+      el.textContent = `LIVE · OPC-UA (${s.tag_count} tags)`;
+      if (dot) dot.style.background = 'var(--green)';
+    } else {
+      el.textContent = 'OPC-UA DOWN · fallback data';
+      if (dot) dot.style.background = 'var(--yellow)';
+    }
+  } catch (e) { /* server unreachable */ }
 }
 
 // ── Fleet ──
@@ -341,13 +359,13 @@ function renderDetail(data) {
       <div class="ai-tag">
         <div class="ai-tag-label">🧪 SCADA TDS (live)</div>
         <div class="ai-tag-value" id="ai-live-tds" style="color:var(--teal)">—</div>
-        <div class="ai-tag-sub">mg/L via simulated OPC-UA</div>
+        <div class="ai-tag-sub">mg/L via OPC-UA subscription</div>
       </div>
     </div>
 
     <!-- SCADA tag grid -->
     <div>
-      <div class="chart-title">SCADA Process Tags (Simulated OPC-UA Feed)</div>
+      <div class="chart-title">SCADA Process Tags (Live OPC-UA Subscription)</div>
       <div class="scada-grid">
         <div class="scada-tag">
           <div class="scada-tag-label">Water Level</div>
