@@ -1,7 +1,7 @@
 # AquaSentry — Multi-Aquifer Groundwater Monitoring & Forecasting
 
 **Monitors groundwater bores across three management areas of the Adelaide
-region — the Northern Adelaide Plains, the Barossa and the McLaren Vale coast
+region, the Northern Adelaide Plains, the Barossa and the McLaren Vale coast
 forecasts supply pressure a month ahead, and surfaces critical anomalies the
 moment they appear.** An end-to-end Azure pipeline that turns public
 environmental data into decisions on a live Power BI dashboard.
@@ -22,7 +22,7 @@ Groundwater is slow-moving and easily degraded: by the time a problem is
 obvious in a single reading, the underlying trend is usually well established.
 AquaSentry continuously ingests public groundwater, rainfall and surface-water
 data, scores it for the failure modes that matter, over-extraction, stalled
-recharge, saline intrusion — **and forecasts where each bore is heading**, so
+recharge, saline intrusion, **and forecasts where each bore is heading**, so
 operators can act before a constraint becomes a crisis rather than after.
 
 The emphasis throughout is **explainability and data integrity**: every figure
