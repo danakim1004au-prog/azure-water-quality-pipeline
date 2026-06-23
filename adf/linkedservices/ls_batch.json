@@ -1,0 +1,30 @@
+{
+  "name": "ls_batch",
+  "type": "Microsoft.DataFactory/factories/linkedservices",
+  "properties": {
+    "type": "AzureBatch",
+    "description": "Compute pool that executes the RunIngestion Custom activity. Supply an existing Azure Batch account and pool; the access key is resolved from Key Vault. (Not provisioned by the Terraform in infra/ — see adf/README.md.)",
+    "typeProperties": {
+      "accountName": "@{linkedService().batchAccountName}",
+      "batchUri": "https://@{linkedService().batchAccountName}.@{linkedService().region}.batch.azure.com",
+      "poolName": "@{linkedService().poolName}",
+      "accessKey": {
+        "type": "AzureKeyVaultSecret",
+        "store": {
+          "referenceName": "ls_keyvault",
+          "type": "LinkedServiceReference"
+        },
+        "secretName": "batch-account-key"
+      },
+      "linkedServiceName": {
+        "referenceName": "ls_staging",
+        "type": "LinkedServiceReference"
+      }
+    },
+    "parameters": {
+      "batchAccountName": { "type": "String" },
+      "region": { "type": "String" },
+      "poolName": { "type": "String" }
+    }
+  }
+}

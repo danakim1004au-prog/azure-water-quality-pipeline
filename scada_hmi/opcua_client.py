@@ -23,7 +23,7 @@ from asyncua import Client
 _logger = logging.getLogger("aquasentry.opcua.client")
 
 ENDPOINT  = "opc.tcp://127.0.0.1:4840/aquasentry/server/"
-NAMESPACE = "http://aquasentry.sawater/opcua"
+NAMESPACE = "http://aquasentry.systems/opcua"
 
 # OPC-UA BrowseName -> internal cache field
 _FIELD_BY_BROWSENAME = {

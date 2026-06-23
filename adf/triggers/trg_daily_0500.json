@@ -2,14 +2,14 @@
   "name": "trg_daily_0500",
   "type": "Microsoft.DataFactory/factories/triggers",
   "properties": {
-    "description": "Runs the ingestion pipeline every morning at 05:00 local time, ahead of the 06:00 anomaly-detection function schedule.",
+    "description": "Runs the ingestion pipeline daily at 05:00 UTC, one hour ahead of the 06:00 UTC anomaly-detection Function timer. UTC is used throughout because Linux Consumption Functions schedule in UTC and do not honour WEBSITE_TIME_ZONE.",
     "type": "ScheduleTrigger",
     "typeProperties": {
       "recurrence": {
         "frequency": "Day",
         "interval": 1,
-        "startTime": "2026-01-01T05:00:00",
-        "timeZone": "Cen. Australia Standard Time"
+        "startTime": "2026-01-01T05:00:00Z",
+        "timeZone": "UTC"
       }
     },
     "pipelines": [

@@ -1,0 +1,18 @@
+{
+  "name": "ls_staging",
+  "type": "Microsoft.DataFactory/factories/linkedservices",
+  "properties": {
+    "type": "AzureBlobStorage",
+    "description": "Staging storage for the Custom activity's resource files (the packaged ingestion code) and Batch working files. Connection string resolved from Key Vault.",
+    "typeProperties": {
+      "connectionString": {
+        "type": "AzureKeyVaultSecret",
+        "store": {
+          "referenceName": "ls_keyvault",
+          "type": "LinkedServiceReference"
+        },
+        "secretName": "storage-connection-string"
+      }
+    }
+  }
+}

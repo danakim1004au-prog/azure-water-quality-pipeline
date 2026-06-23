@@ -54,12 +54,12 @@ These questions map directly onto the three detectors described in Section 6.
  Climate API (daily rainfall)               ├─► Azure Data Factory ─► Azure SQL Database
  Surface-water portal (river/reservoir)     ┘     (daily ETL)              │
                                                                            │
-                              Azure Function (daily analytics) ────────────┤
-                              · rule-based detectors (explainable)         │
-                              · ML level forecast (gradient boosting)      │
-                              · ML anomaly detection (Isolation Forest)    │
+                              Azure Function (daily 06:00 UTC timer) ──────┤
+                              · rule-based detectors → anomaly_events      │
+                              · ML forecast + Isolation Forest (offline;   │
+                                cloud inference planned)                   │
                                                           │
-                                              Azure SQL · anomaly_events / forecasts
+                                              Azure SQL · anomaly_events
                                                           │
                                    ┌──────────────────────┴───────────────────────┐
                                    ▼                                               ▼
@@ -71,7 +71,7 @@ These questions map directly onto the three detectors described in Section 6.
 |-------|-----------|----------------|
 | Infrastructure | Terraform | Provisions every Azure resource as code |
 | Ingestion | Python (requests, pandas, SQLAlchemy) | Pulls each source, normalises it, upserts to Azure SQL |
-| Orchestration | Azure Data Factory | Schedules the daily ETL and triggers detection |
+| Orchestration | Azure Data Factory | Schedules the daily ETL (05:00 UTC trigger) |
 | Storage | Azure SQL Database (Basic) | Curated, query-optimised analytical store |
 | Analytics (rules) | Azure Functions (Python) | Runs the three anomaly detectors daily |
 | Analytics (ML) | scikit-learn (gradient boosting, Isolation Forest) | Month-ahead level forecast and unsupervised anomaly detection |
@@ -107,9 +107,11 @@ genuine localities inside each area (Virginia and Angle Vale on the plains;
 Nuriootpa and Tanunda in the Barossa; Maslin Beach and Port Willunga on the
 coast), and the aquifer names reflect each area's real hydrogeology (the
 Tertiary T1/T2 sands of the plains, the Barossa's fractured rock, and the
-Maslin Sands / Port Willunga Formation of the McLaren Vale coast). Station and
-drillhole identifiers are representative of these areas and should be confirmed
-against a live API call before relying on real data (see Section 11).
+Maslin Sands / Port Willunga Formation of the McLaren Vale coast). The
+**rainfall station identifiers are real** (Edinburgh 23083, Nuriootpa 23321,
+Willunga 23753); the **bore drillhole identifiers are representative
+demonstration values** and should be confirmed against a live WaterConnect call
+before relying on real data (see Section 11).
 
 ### 4.2 Validating the pipeline: a schema-identical demonstration dataset
 
@@ -126,8 +128,9 @@ end-to-end, the demonstration warehouse is populated by
 deterministic generator (fixed random seed) built on a light hydrological
 model — a winter-dominant (Mediterranean-climate) rainfall pattern, a
 rainfall-driven recharge response on each bore, gentle long-term drawdown, and
-mean-reverting salinity, all using the genuine drillhole numbers, station IDs
-and management areas described in Section 4.1.
+mean-reverting salinity, all using the real station IDs and management areas
+described in Section 4.1 (the bore drillhole numbers and the readings themselves
+are synthetic).
 
 On top of that realistic baseline, **three anomaly scenarios are deliberately
 injected** — a rapid water-level change, a stalled rainfall-recharge response
@@ -392,15 +395,31 @@ In the interest of an honest account:
   APIs.** The clients normalise the documented response shapes and include
   fallbacks, but the exact field names and drillhole identifiers should be
   confirmed against a live call before relying on real data.
+- **Terraform provisions the core infrastructure, not the application
+  artifacts.** It stands up the resource group, Azure SQL, Data Factory,
+  Function App, Storage and Key Vault. The SQL schema/views/procedures, the ADF
+  pipeline/linked services/trigger, the Logic App workflow, and the Function
+  code are applied/deployed separately (via the scripts and the Deploy
+  workflow) — so "Core Azure infrastructure as code", not "the entire stack as
+  one `terraform apply`".
 - **Data Factory and the Function App are provisioned but not populated.** The
-  Terraform deploys both resources; importing the pipeline definitions in
-  [`adf/`](../adf/) and deploying the function code is the next step to make the
-  orchestration and scheduled detection run in the cloud (the detection logic
-  and the ML models are complete and tested).
+  ADF `Custom` activity references an **Azure Batch pool** (`ls_batch`, staging
+  through `ls_staging`), but the Batch account/pool itself and the Key Vault
+  secrets it resolves are **not** provisioned by the Terraform and must be
+  supplied — or swap `RunIngestion` for a **Container Apps Job / Web Activity**.
+  Importing the pipeline definitions in [`adf/`](../adf/) and deploying the
+  function code is the next step.
+- **Anomaly detection runs on the Function's own daily 06:00 UTC timer**, one
+  hour after the 05:00 UTC ingestion trigger, rather than being invoked by ADF —
+  the Function is timer-triggered, so there is no HTTP endpoint for ADF to call.
+  UTC is used on both sides because Linux Consumption Functions schedule in UTC
+  and do not honour `WEBSITE_TIME_ZONE`; an explicit ADF→Function hand-off would
+  instead need an HTTP-triggered Function.
 - **The ML models run offline; cloud scoring is the next step.** Training and
   evaluation are complete and tested, and the saved `forecast_model.joblib` is a
-  plain scikit-learn artifact that the existing Function (or Azure ML) can load
-  for scheduled inference — a deployment task, not a modelling one.
+  plain scikit-learn artifact that the Function (or Azure ML) can load for
+  scheduled inference — a deployment task, not a modelling one. There is no
+  `forecasts` table in the schema yet; cloud inference would add one.
 - **The Logic App workflow is defined but not connected** to live email/Teams
   connectors.
 - **The dashboard currently runs on the schema-identical demonstration dataset**

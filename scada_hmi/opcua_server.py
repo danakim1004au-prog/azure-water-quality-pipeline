@@ -42,7 +42,7 @@ WELLS_CSV    = BASE / "sample_data" / "monitoring_wells.csv"
 READINGS_CSV = BASE / "sample_data" / "water_level_readings.csv"
 
 ENDPOINT          = "opc.tcp://0.0.0.0:4840/aquasentry/server/"
-NAMESPACE         = "http://aquasentry.sawater/opcua"
+NAMESPACE         = "http://aquasentry.systems/opcua"
 UPDATE_INTERVAL_S = 2.0
 
 

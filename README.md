@@ -19,10 +19,12 @@ environmental data into decisions on a live Power BI dashboard.
 
 Groundwater is slow-moving and easily degraded: by the time a problem is
 obvious in a single reading, the underlying trend is usually well established.
-AquaSentry continuously ingests public groundwater, rainfall and surface-water
-data, scores it for the failure modes that matter, over-extraction, stalled
-recharge, saline intrusion, **and forecasts where each bore is heading**, so
-operators can act before a constraint becomes a crisis rather than after.
+AquaSentry is **designed to ingest** public groundwater, rainfall and
+surface-water data, score it for the failure modes that matter, over-extraction,
+stalled recharge, saline intrusion, **and forecast where each bore is heading**,
+so operators can act before a constraint becomes a crisis rather than after.
+The current Azure demonstration runs on a schema-compatible synthetic dataset
+(see *Data sources & provenance* below).
 
 The emphasis throughout is **explainability and data integrity**: every figure
 traces back to a source reading, every rule-based alert to a documented
@@ -36,7 +38,24 @@ future.
 | **Monitoring scope** | 6 bores · 3 management areas · 4 distinct aquifers · ~3 years of daily readings |
 | **Forecast skill** | Month-ahead level forecast at 0.20 m MAE; **+25 % over a naive baseline at the 60-day horizon** |
 | **Anomaly detection** | 3 explainable detectors **plus** an Isolation Forest that independently rediscovers injected faults |
-| **Cloud & quality** | Full stack as Terraform IaC · live Power BI **DirectQuery** to Azure SQL · **12 unit tests** green in CI |
+| **Cloud & quality** | Core Azure infrastructure as **Terraform IaC** · Power BI **DirectQuery** to Azure SQL · **12 unit tests** green in CI |
+
+## Project status
+
+A portfolio build: the analytics, ML, dashboard and SCADA HMI are implemented
+and runnable; the Azure orchestration is provided as deployable artifacts rather
+than a standing production deployment.
+
+| Component | Status |
+|-----------|--------|
+| Rule-based anomaly detection (3 detectors) | ✅ Implemented & unit-tested; packaged as a timer-triggered Azure Function (deploy workflow provided) |
+| ML forecasting + Isolation Forest | ✅ Implemented & tested **offline**; cloud inference is the next step |
+| Power BI dashboard (DirectQuery) | ✅ Built against live Azure SQL (screenshots) |
+| Real-time SCADA HMI (OPC-UA + WebSocket) | ✅ Runs locally — real protocol path, simulated field values |
+| Core Azure infra (SQL · ADF · Function · Key Vault · Storage) | ✅ Provisioned via Terraform |
+| SQL schema/views/procs · ADF pipeline · Logic App | 🔧 Scripts/artifacts provided; applied & deployed separately (not by Terraform) |
+| Logic App alerting (Email / Teams) | 🔧 Workflow definition provided; connectors not configured |
+| Live public-API ingestion | 🔧 Clients implemented; not yet validated against the live endpoints |
 
 ---
 
@@ -79,28 +98,28 @@ table rolling up to the current Normal / Watch / Critical classification.
  Climate API (daily rainfall)               ├─► Azure Data Factory ─► Azure SQL Database
  Surface-water portal (river/reservoir)     ┘     (daily ETL)              │
                                                                            │
-                              Azure Function (daily analytics) ────────────┤
-                              · rule-based detectors (explainable)         │
-                              · ML level forecast (gradient boosting)      │
-                              · ML anomaly detection (Isolation Forest)    │
+                              Azure Function (daily 06:00 UTC timer) ──────┤
+                              · rule-based detectors → anomaly_events      │
+                              · ML forecast + Isolation Forest (offline;   │
+                                cloud inference planned)                   │
                                                           │
-                                              Azure SQL · anomaly_events / forecasts
+                                              Azure SQL · anomaly_events
                                                           │
                                    ┌──────────────────────┴───────────────────────┐
                                    ▼                                               ▼
                           Power BI dashboard                       Logic Apps → Email / Teams
-                       (DirectQuery to Azure SQL)                  (CRITICAL alerts)
+                       (DirectQuery to Azure SQL)              (workflow defined; connectors TBC)
 ```
 
 | Layer | Technology | Responsibility |
 |-------|-----------|----------------|
 | Infrastructure | **Terraform** | Provisions every Azure resource as code |
 | Ingestion | **Python** (requests · pandas · SQLAlchemy) | Pulls, normalises and idempotently upserts each source |
-| Orchestration | **Azure Data Factory** | Schedules the daily ETL and triggers scoring |
+| Orchestration | **Azure Data Factory** | Schedules the daily ETL (05:00 UTC) |
 | Storage | **Azure SQL Database** | Curated, query-optimised analytical store |
-| Analytics | **Azure Functions · scikit-learn** | Rule-based detection, forecasting and ML anomaly detection |
+| Analytics | **Azure Functions** (rules) · **scikit-learn** (ML) | Rule-based detection packaged as a 06:00 UTC timer-triggered Function (deploy workflow provided); ML forecasting + anomaly detection run offline (cloud inference planned) |
 | Secrets | **Azure Key Vault** | Connection string read via managed identity |
-| Alerting | **Azure Logic Apps** | Email / Teams on CRITICAL events |
+| Alerting | **Azure Logic Apps** | Workflow definition for Email / Teams on CRITICAL events (connectors not yet configured) |
 | Visualisation | **Power BI** (DirectQuery) | Four-view decision dashboard |
 | CI/CD | **GitHub Actions** | Lint, unit tests, `terraform validate` |
 
@@ -190,7 +209,8 @@ OPC-UA server (field/RTU layer)  ──opc.tcp──►  OPC-UA client subscript
   control.
 
 The OPC-UA server stands in for the PLC/RTU layer, advancing realistic tag
-values seeded from real readings (no physical sensors are attached, so the
+values seeded from the latest demonstration-dataset readings (no physical
+sensors are attached, so the
 *values* are simulated — but the *protocol path* is genuine OPC-UA). In
 production the HMI's OPC-UA endpoint is simply repointed at the real field
 server or an **Azure IoT Hub OPC-UA bridge**, with no application-code change.
@@ -199,6 +219,10 @@ Full design and production roadmap:
 
 ```bash
 pip install -r scada_hmi/requirements.txt
+# one-off: generate the ML artifacts the HMI overlays (forecast + anomaly scores)
+python ml/forecast_train.py
+python ml/anomaly_unsupervised.py
+# then run the two processes:
 python scada_hmi/opcua_server.py      # terminal 1 — field OPC-UA server
 python scada_hmi/hmi_server.py        # terminal 2 — HMI + OPC-UA client; open http://localhost:8080
 ```
@@ -231,11 +255,15 @@ report. Running cost is ~AUD 5–10/month; remember `terraform destroy` when don
 | National climate service (SILO) | Daily rainfall by station | Open / CC |
 | Surface-water portal | Near-real-time river & reservoir levels | Open |
 
-The pipeline, schema and station/management-area references are built directly
-against these real, openly-licensed sources (genuine WaterConnect drillhole
-numbers, SILO stations and SA prescribed water areas). For the live
-demonstration, the dashboard and Azure database are populated through a
-schema-identical, hydrologically-modelled dataset
+The pipeline and schema are built directly against these real, openly-licensed
+sources. The **rainfall station IDs** (Edinburgh 23083, Nuriootpa 23321,
+Willunga 23753) and the **study-area references** (the Northern Adelaide Plains,
+Barossa and McLaren Vale prescribed wells areas) are **real**; the **bore
+(drillhole) identifiers and the readings themselves are representative
+demonstration data** — the ingestion clients are implemented but not yet
+validated against the live endpoints. For the live demonstration, the dashboard
+and Azure database are
+populated through a schema-identical, hydrologically-modelled dataset
 ([`scripts/generate_sample_data.py`](scripts/generate_sample_data.py)) with a
 small number of **deliberately injected anomaly scenarios** — a rapid level
 change, a stalled recharge response and a coastal salinity-intrusion trend — so

@@ -4,7 +4,7 @@
 
 This module extends the AquaSentry pipeline with a **web-based SCADA Human–Machine Interface (HMI)** that acquires live process tags over a **real OPC-UA subscription** and overlays the machine-learning outputs directly on top of them. The result is a single-screen operational view where a control-room engineer sees live SCADA readings and ML predictions together — without switching between a SCADA workstation and a separate BI tool.
 
-**What is genuine here:** the OPC-UA protocol path is real. A standards-compliant OPC-UA server exposes one object per bore; the HMI connects as an OPC-UA client and receives **data-change notifications** over `opc.tcp://`. **What is simulated:** the field values themselves, because no physical sensors are attached — the OPC-UA server advances realistic values seeded from the project's real readings. Swapping in real hardware means repointing the client endpoint, not rewriting the application.
+**What is genuine here:** the OPC-UA protocol path is real. A standards-compliant OPC-UA server exposes one object per bore; the HMI connects as an OPC-UA client and receives **data-change notifications** over `opc.tcp://`. **What is simulated:** the field values themselves, because no physical sensors are attached — the OPC-UA server advances realistic values seeded from the project's demonstration-dataset readings. Swapping in real hardware means repointing the client endpoint, not rewriting the application.
 
 **Implementation time:** ~1 day to add the OPC-UA server + client subscription on top of the existing HMI; 3–5 weeks for a production deployment against a real PLC/RTU estate or an Azure IoT Hub OPC-UA bridge.
 
@@ -18,12 +18,12 @@ This module extends the AquaSentry pipeline with a **web-based SCADA Human–Mac
 │                                                                            │
 │  scada_hmi/opcua_server.py  —  standards-compliant OPC-UA server           │
 │  Endpoint: opc.tcp://0.0.0.0:4840/aquasentry/server/                        │
-│  Namespace: http://aquasentry.sawater/opcua                                 │
+│  Namespace: http://aquasentry.systems/opcua                                 │
 │                                                                            │
 │  One object per bore (Bore_<id>_<location>) with variables:                 │
 │    WaterLevel_mBGL · TDS_mg_per_L · PumpSpeed_RPM (writable)               │
 │    ValvePosition_pct (writable) · SignalQuality                            │
-│  Values seeded from real readings, advanced every 2 s (bounded walk)        │
+│  Values seeded from demo readings, advanced every 2 s (bounded walk)        │
 └───────────────────────────────┬────────────────────────────────────────────┘
                                 │ opc.tcp:// — OPC-UA data-change subscription
 ┌───────────────────────────────▼────────────────────────────────────────────┐
@@ -73,7 +73,7 @@ This module extends the AquaSentry pipeline with a **web-based SCADA Human–Mac
 ### 3.1 Server (`opcua_server.py`)
 - Built on `asyncua.Server`; registers a custom namespace and exposes the OPC-UA standard address space.
 - For each of the six bores it adds an object `Bore_<id>_<location>` carrying five variables. `PumpSpeed_RPM` and `ValvePosition_pct` are marked **writable** (`set_writable()`), so a supervisory-control client could later command actuation — the OPC-UA half of "Respond".
-- A 2-second loop advances each tag with a bounded random walk around values seeded from the latest real reading, emulating continuous field telemetry with realistic dynamics.
+- A 2-second loop advances each tag with a bounded random walk around values seeded from the latest demonstration-dataset reading, emulating continuous field telemetry with realistic dynamics.
 
 ### 3.2 Client + subscription (`opcua_client.py`)
 - Connects to `opc.tcp://127.0.0.1:4840/...`, browses the Objects folder, and discovers bore objects by browse-name convention.

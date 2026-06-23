@@ -2,7 +2,7 @@
   "name": "pl_water_ingestion",
   "type": "Microsoft.DataFactory/factories/pipelines",
   "properties": {
-    "description": "Daily ETL: pull groundwater, rainfall and surface-water data from the public APIs, load Azure SQL, then trigger anomaly detection.",
+    "description": "Daily ETL: pull groundwater, rainfall and surface-water data from the public APIs and load Azure SQL. Anomaly detection runs separately on the Function's daily 06:00 UTC timer (one hour after this 05:00 UTC load). RunIngestion executes on the referenced Azure Batch pool (ls_batch), staging its resource files in ls_staging; provide a Batch account/pool before running.",
     "annotations": ["water-quality", "etl"],
     "parameters": {
       "historyYears": {
@@ -13,7 +13,7 @@
     "activities": [
       {
         "name": "RunIngestion",
-        "description": "Runs the Python ingestion package as a container/custom activity. Collects all sources and upserts them into Azure SQL.",
+        "description": "Runs the Python ingestion package. As a Custom activity this executes on an Azure Batch pool; swap to a Container Apps Job or Web Activity if no Batch pool is available. Collects all sources and upserts them into Azure SQL.",
         "type": "Custom",
         "policy": {
           "timeout": "0.02:00:00",
@@ -23,27 +23,13 @@
         "typeProperties": {
           "command": "python -m ingestion.run_ingestion --years @{pipeline().parameters.historyYears}",
           "resourceLinkedService": {
-            "referenceName": "ls_azuresql",
+            "referenceName": "ls_staging",
             "type": "LinkedServiceReference"
-          }
-        }
-      },
-      {
-        "name": "TriggerAnomalyDetection",
-        "description": "Invokes the anomaly-detection Function once the load succeeds.",
-        "type": "AzureFunctionActivity",
-        "dependsOn": [
-          {
-            "activity": "RunIngestion",
-            "dependencyConditions": ["Succeeded"]
-          }
-        ],
-        "typeProperties": {
-          "functionName": "anomaly_detector",
-          "method": "POST"
+          },
+          "folderPath": "ingestion-package"
         },
         "linkedServiceName": {
-          "referenceName": "ls_function",
+          "referenceName": "ls_batch",
           "type": "LinkedServiceReference"
         }
       },
