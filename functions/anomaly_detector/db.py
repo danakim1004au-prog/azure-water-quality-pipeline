@@ -65,14 +65,15 @@ def load_readings(engine: Engine) -> pd.DataFrame:
 
 
 def load_rainfall(engine: Engine) -> pd.DataFrame:
-    """Load daily rainfall averaged across stations (regional signal)."""
+    """Load daily rainfall by groundwater management area."""
     sql = """
-        SELECT  obs_date,
+        SELECT  management_area,
+                obs_date,
                 AVG(rainfall_mm) AS rainfall_mm
         FROM    monitoring.rainfall_observations
         WHERE   data_quality_flag <> 'suspect'
-        GROUP BY obs_date
-        ORDER BY obs_date
+        GROUP BY management_area, obs_date
+        ORDER BY management_area, obs_date
     """
     return pd.read_sql(sql, engine, parse_dates=["obs_date"])
 

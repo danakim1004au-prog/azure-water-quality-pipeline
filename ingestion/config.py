@@ -25,11 +25,11 @@ MANAGEMENT_AREAS = [
 ]
 
 # Public daily-rainfall stations, one near each management area.
-# (station_id, friendly name)
+# (station_id, friendly name, management area)
 RAINFALL_STATIONS = [
-    ("23083", "Edinburgh"),   # Northern Adelaide Plains
-    ("23321", "Nuriootpa"),   # Barossa
-    ("23753", "Willunga"),    # McLaren Vale
+    ("23083", "Edinburgh", "Northern Adelaide Plains"),
+    ("23321", "Nuriootpa", "Barossa"),
+    ("23753", "Willunga", "McLaren Vale"),
 ]
 
 

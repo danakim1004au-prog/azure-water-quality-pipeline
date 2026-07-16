@@ -78,22 +78,23 @@ def main() -> int:
     # Naive baseline: predict the future level equals the current level.
     baseline = test["level_now"].to_numpy()
 
+    model_mae = float(mean_absolute_error(y_test, pred))
+    baseline_mae = float(mean_absolute_error(y_test, baseline))
     metrics = {
         "horizon_days": HORIZON_DAYS,
         "n_train": int(len(train)),
         "n_test": int(len(test)),
-        "model_mae_m": round(float(mean_absolute_error(y_test, pred)), 4),
+        "model_mae_m": round(model_mae, 4),
         "model_rmse_m": round(_rmse(y_test, pred), 4),
-        "baseline_mae_m": round(float(mean_absolute_error(y_test, baseline)), 4),
+        "baseline_mae_m": round(baseline_mae, 4),
         "baseline_rmse_m": round(_rmse(y_test, baseline), 4),
     }
     metrics["mae_improvement_pct"] = round(
-        100 * (metrics["baseline_mae_m"] - metrics["model_mae_m"])
-        / metrics["baseline_mae_m"],
+        100 * (baseline_mae - model_mae) / baseline_mae,
         1,
     )
 
-    # Persist artifacts.
+    # Persist artefacts.
     import joblib
 
     joblib.dump({"model": model, "features": features}, os.path.join(ARTIFACTS, "forecast_model.joblib"))
@@ -199,7 +200,7 @@ def _report(metrics: dict, model: GradientBoostingRegressor, features: list[str]
     print("\nTop features:")
     for name, imp in importances[:6]:
         print(f"  {name:<22} {imp:.3f}")
-    print(f"\nArtifacts written to {os.path.normpath(ARTIFACTS)}")
+    print(f"\nArtefacts written to {os.path.normpath(ARTIFACTS)}")
 
 
 if __name__ == "__main__":

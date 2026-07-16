@@ -90,7 +90,7 @@ cloud-agnostic, state-driven workflow.
 
 ### 4.1 Designed data sources
 
-The ingestion layer is built to collect from three independent, openly-licensed
+The ingestion layer is built to collect from three independent, openly licensed
 public sources. Endpoints are configurable via environment variables in
 [`ingestion/config.py`](../ingestion/config.py).
 
@@ -100,18 +100,10 @@ public sources. Endpoints are configurable via environment variables in
 | **SILO** (national gridded climate service) | Daily rainfall by station — Edinburgh (23083), Nuriootpa (23321), Willunga (23753), one near each management area | HTTP CSV request with contact email for attribution | Open / Creative Commons |
 | **water.data.sa.gov.au** (surface-water portal) | Near-real-time river and reservoir levels | Bulk export API | Open |
 
-Target study area: the **Northern Adelaide Plains, Barossa and McLaren Vale**
-groundwater management areas, within the Adelaide & Mount Lofty Ranges region —
-all real, publicly-defined prescribed wells areas. Bore coordinates sit at
-genuine localities inside each area (Virginia and Angle Vale on the plains;
-Nuriootpa and Tanunda in the Barossa; Maslin Beach and Port Willunga on the
-coast), and the aquifer names reflect each area's real hydrogeology (the
-Tertiary T1/T2 sands of the plains, the Barossa's fractured rock, and the
-Maslin Sands / Port Willunga Formation of the McLaren Vale coast). The
-**rainfall station identifiers are real** (Edinburgh 23083, Nuriootpa 23321,
-Willunga 23753); the **bore drillhole identifiers are representative
-demonstration values** and should be confirmed against a live WaterConnect call
-before relying on real data (see Section 11).
+The study area covers the Northern Adelaide Plains, Barossa and McLaren Vale.
+The demonstration coordinates, aquifer names, station identifiers and
+drillhole identifiers are representative values. They must be checked against
+the source systems before the ingestion clients are used with observed data.
 
 ### 4.2 Validating the pipeline: a schema-identical demonstration dataset
 
@@ -121,16 +113,14 @@ before relying on real data (see Section 11).
 > below.
 
 Building a monitoring system around live government APIs introduces
-credentials, rate limits and upstream availability as dependencies of the demo
-itself. To keep the project fully reproducible, explainable and verifiable
-end-to-end, the demonstration warehouse is populated by
+credentials, rate limits and upstream availability as dependencies. The
+demonstration warehouse is therefore populated by
 [`scripts/generate_sample_data.py`](../scripts/generate_sample_data.py): a
-deterministic generator (fixed random seed) built on a light hydrological
+generator with a fixed random seed and reference date, built on a light hydrological
 model — a winter-dominant (Mediterranean-climate) rainfall pattern, a
 rainfall-driven recharge response on each bore, gentle long-term drawdown, and
-mean-reverting salinity, all using the real station IDs and management areas
-described in Section 4.1 (the bore drillhole numbers and the readings themselves
-are synthetic).
+mean-reverting salinity. Rainfall stations are mapped to the relevant
+groundwater management area.
 
 On top of that realistic baseline, **three anomaly scenarios are deliberately
 injected** — a rapid water-level change, a stalled rainfall-recharge response
@@ -141,10 +131,9 @@ technique used to test monitoring and alerting systems generally: known faults
 are injected so that detection, thresholds and reporting can be proven to work
 *before* being pointed at production data.
 
-To be scrupulously clear: this is a **demonstration and validation dataset**,
-not a record of live readings. The ingestion clients for the real sources are
-implemented and included; pointing them at the live APIs and reconciling the
-result is listed as the natural next step in Section 11.
+This is a **demonstration and validation dataset**, not a record of observed
+readings. The ingestion clients are included but have not yet been reconciled
+against live API responses.
 
 ---
 
@@ -161,14 +150,19 @@ builds its star model on top via relationships.
 | `rainfall_observations` | one row per station per day | daily rainfall (mm) |
 | `surface_water_readings` | one row per site/metric/time | enrichment source |
 | `anomaly_events` | one row per detected event | type, severity, threshold vs actual, explanation |
+| `water_licences` | one row per licence period and management area | allocation and compliance limit |
+| `metered_extraction` | one row per bore per reporting month | extraction volume and coverage days |
+| `water_security_risk_snapshots` | one row per bore per snapshot date | forecast, allocation use, data completeness, risk and recommendation |
 
-Two reporting views ([`sql/02_indexes_and_views.sql`](../sql/02_indexes_and_views.sql))
+Four reporting views ([`sql/02_indexes_and_views.sql`](../sql/02_indexes_and_views.sql))
 pre-shape the data so DirectQuery stays responsive:
 
 - `vw_well_status` — classifies each bore as Normal / Watch / Critical from its
   most recent anomalies (drives the overview map).
 - `vw_rainfall_recharge` — aligns daily rainfall with water level by management
   area (drives the recharge analysis).
+- `vw_water_security_risk` — returns the latest bore-level Phase 2 risk snapshot.
+- `vw_licence_compliance` — summarises extraction against allocation by licence period.
 
 Every fact table carries a `data_quality_flag` and an `ingested_at` timestamp;
 the design rationale is in Section 9.
@@ -198,7 +192,7 @@ fired.
 
 The reasoning behind each threshold is documented in full in
 [`docs/anomaly_methodology.md`](anomaly_methodology.md). The logic is verified
-by six unit tests ([`tests/test_detectors.py`](../tests/test_detectors.py))
+by seven unit tests ([`tests/test_detectors.py`](../tests/test_detectors.py))
 that run on synthetic frames with no cloud or database dependency, so they
 execute in CI on every push.
 
@@ -229,10 +223,10 @@ cycle that persistence cannot represent
 | Horizon | Model MAE | Persistence MAE | Improvement |
 |--------:|----------:|----------------:|------------:|
 | 7 days  | 0.138 m   | 0.124 m         | −11.5 %     |
-| 14 days | 0.169 m   | 0.151 m         | −12.1 %     |
-| 30 days | 0.204 m   | 0.208 m         | +1.8 %      |
-| 45 days | 0.214 m   | 0.250 m         | +14.4 %     |
-| 60 days | 0.229 m   | 0.304 m         | +24.5 %     |
+| 14 days | 0.167 m   | 0.151 m         | −10.6 %     |
+| 30 days | 0.203 m   | 0.208 m         | +2.2 %      |
+| 45 days | 0.217 m   | 0.250 m         | +13.3 %     |
+| 60 days | 0.234 m   | 0.304 m         | +22.8 %     |
 
 The negative values at short horizons are reported deliberately and honestly:
 at close range the series is so autocorrelated that persistence is genuinely
@@ -245,15 +239,23 @@ where it adds real foresight.
 `IsolationForest` over well-agnostic features — rolling z-scores of level and
 salinity, day-over-day rates of change, and trailing rainfall — to learn the
 joint shape of "normal" across the fleet and flag points that don't fit. It
-requires no labels and no thresholds, so it can surface combinations the rules
-were never designed for. As a validation check it independently rediscovers the
-deliberately-injected anomaly scenarios (the rapid level change on well 1 and
-the coastal salinity-intrusion trend on well 5).
+uses no labelled outcomes or manually defined hydrogeological threshold; the
+operating point is set with a 1% contamination parameter. The injected rapid
+level and salinity cases provide a repeatable pipeline check.
 
 Both models are verified by [`tests/test_ml.py`](../tests/test_ml.py), which
 guards the leakage-safe split, the absence of target leakage, the model's win
 over persistence at range, and the rediscovery of the injected anomalies — all
 on the committed sample data, with no cloud dependency.
+
+### 6.4 Regional water-security decision support
+
+[`analytics/water_security_risk.py`](../analytics/water_security_risk.py)
+combines a 60-day trend projection and 80% interval with licence allocation,
+metered extraction, anomaly context and 30-day data completeness. It produces
+a bore-level risk score, status, recorded drivers and a recommended action.
+The allocation and extraction values are demonstration scenarios rather than
+regulatory records.
 
 ---
 
@@ -333,8 +335,7 @@ this volume. The environment is intended to be torn down with
 
 ## 9. Data quality and integrity
 
-Supporting trustworthy, compliance-grade reporting was an explicit goal, so
-several integrity controls are built in:
+Several controls support traceable reporting and decision review:
 
 - **Quality flags.** Every fact table carries a `data_quality_flag`
   (`measured` / `interpolated` / `suspect`). Non-physical readings — negative
@@ -366,7 +367,8 @@ python scripts/generate_sample_data.py      # demonstration dataset
 python scripts/run_detectors_offline.py     # run the rule-based detectors
 python ml/forecast_train.py                 # train + evaluate the level forecast
 python ml/anomaly_unsupervised.py           # learned multivariate anomaly detection
-pytest tests/ -v                            # 12 unit tests (detectors + ML)
+python analytics/water_security_risk.py     # risk and licence-compliance snapshot
+pytest tests/ -v                            # 18 automated tests
 ```
 
 ### On Azure
@@ -388,8 +390,6 @@ Point Power BI at the `sql_server_fqdn` Terraform output, then
 ---
 
 ## 11. Limitations and future work
-
-In the interest of an honest account:
 
 - **Live ingestion is implemented but not yet validated against the real
   APIs.** The clients normalise the documented response shapes and include
@@ -417,7 +417,7 @@ In the interest of an honest account:
   instead need an HTTP-triggered Function.
 - **The ML models run offline; cloud scoring is the next step.** Training and
   evaluation are complete and tested, and the saved `forecast_model.joblib` is a
-  plain scikit-learn artifact that the Function (or Azure ML) can load for
+  plain scikit-learn artefact that the Function code (or Azure ML) can load for
   scheduled inference — a deployment task, not a modelling one. There is no
   `forecasts` table in the schema yet; cloud inference would add one.
 - **The Logic App workflow is defined but not connected** to live email/Teams
@@ -427,9 +427,8 @@ In the interest of an honest account:
   ingestion clients at the live sources and reconciling the result is the
   natural next step.
 
-These are scoping decisions for a portfolio build rather than gaps in the
-design — each remaining step is a configuration/credentials task on top of
-code that already exists.
+The Phase 2 licence, extraction and risk records are representative scenarios.
+They do not constitute a regulatory compliance assessment.
 
 ---
 
@@ -439,4 +438,5 @@ All designed data sources are public and openly licensed (Creative Commons
 Attribution or equivalent). When real data is ingested, attribution to the
 originating agencies is required and is recorded against each source in
 [`ingestion/config.py`](../ingestion/config.py). The synthetic demonstration
-data is generated by this project and carries no third-party licence.
+data, licence allocations and extraction scenarios are generated by this
+project and carry no third-party licence.

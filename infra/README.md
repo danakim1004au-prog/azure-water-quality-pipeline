@@ -49,7 +49,7 @@ terraform output key_vault_name
 1. Run the SQL scripts in order against the new database:
    `sql/01_schema.sql`, `02_indexes_and_views.sql`, `03_audit_and_procs.sql`.
 2. Deploy the Function (`functions/`) — manually or via the `Deploy` workflow.
-3. Import the ADF artifacts in `adf/` (linked services → pipeline → trigger).
+3. Import the ADF artefacts in `adf/` (linked services → pipeline → trigger).
 4. Point Power BI at `sql_server_fqdn` (the SQL server FQDN output).
 
 ## Tear down

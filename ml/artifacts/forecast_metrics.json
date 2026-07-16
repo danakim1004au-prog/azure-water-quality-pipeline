@@ -2,9 +2,9 @@
   "horizon_days": 30,
   "n_train": 4788,
   "n_test": 1242,
-  "model_mae_m": 0.2043,
-  "model_rmse_m": 0.2631,
+  "model_mae_m": 0.2034,
+  "model_rmse_m": 0.2611,
   "baseline_mae_m": 0.2081,
   "baseline_rmse_m": 0.31,
-  "mae_improvement_pct": 1.8
+  "mae_improvement_pct": 2.2
 }

@@ -1,8 +1,9 @@
 # AquaSentry — Multi-Aquifer Groundwater Monitoring & Forecasting
 
-**Monitors groundwater bores across multiple management areas, forecasts supply
-pressure a month ahead, and surfaces critical anomalies the moment they appear.** An end-to-end Azure pipeline that turns public
-environmental data into decisions on a live Power BI dashboard.
+A portfolio project for monitoring groundwater quantity and salinity across
+multiple management areas. It combines Azure infrastructure, Python data
+processing, Power BI reporting, statistical detection, machine-learning
+experiments and a local OPC-UA HMI demonstration.
 
 [![CI](https://github.com/danakim1004au-prog/azure-water-quality-pipeline/actions/workflows/ci.yml/badge.svg)](https://github.com/danakim1004au-prog/azure-water-quality-pipeline/actions/workflows/ci.yml)
 ![Azure](https://img.shields.io/badge/Azure-SQL%20%C2%B7%20Data%20Factory%20%C2%B7%20Functions-0078D4?logo=microsoftazure&logoColor=white)
@@ -11,86 +12,87 @@ environmental data into decisions on a live Power BI dashboard.
 ![Python](https://img.shields.io/badge/Python-3.11-3776AB?logo=python&logoColor=white)
 ![scikit-learn](https://img.shields.io/badge/scikit--learn-forecast%20%2B%20anomaly-F7931E?logo=scikitlearn&logoColor=white)
 ![SCADA HMI](https://img.shields.io/badge/SCADA%20HMI-OPC--UA%20%C2%B7%20FastAPI%20%C2%B7%20WebSocket-009688?logo=fastapi&logoColor=white)
-![Tests](https://img.shields.io/badge/tests-12%20passing-2E8B57)
+![Tests](https://img.shields.io/badge/tests-18%20passing-2E8B57)
 
 ---
 
 ## Overview
 
-Groundwater is slow-moving and easily degraded: by the time a problem is
-obvious in a single reading, the underlying trend is usually well established.
-AquaSentry is **designed to ingest** public groundwater, rainfall and
-surface-water data, score it for the failure modes that matter, over-extraction,
-stalled recharge, saline intrusion, **and forecast where each bore is heading**,
-so operators can act before a constraint becomes a crisis rather than after.
-The current Azure demonstration runs on a schema-compatible synthetic dataset
-(see *Data sources & provenance* below).
+AquaSentry brings groundwater levels, salinity and rainfall into a common data
+model for surveillance, trend analysis and reporting. Three rule-based
+detectors identify rapid level changes, weak recharge responses and sustained
+salinity increases. Separate machine-learning experiments assess future water
+levels and unusual combinations of readings.
 
-The emphasis throughout is **explainability and data integrity**: every figure
-traces back to a source reading, every rule-based alert to a documented
-threshold, and every model to a leakage-safe evaluation against a held-out
-future.
+The Power BI report uses DirectQuery against Azure SQL. The current database is
+populated with a generated demonstration dataset containing six bores and
+three known anomaly scenarios. Public-source ingestion clients are included,
+but live API validation and reconciliation remain future work.
 
-## Key results
+## Project scope
 
-| | |
+| Area | Current scope |
 |---|---|
-| **Monitoring scope** | 6 bores · 3 management areas · 4 distinct aquifers · ~3 years of daily readings |
-| **Forecast skill** | Month-ahead level forecast at 0.20 m MAE; **+25 % over a naive baseline at the 60-day horizon** |
-| **Anomaly detection** | 3 explainable detectors **plus** an Isolation Forest that independently rediscovers injected faults |
-| **Cloud & quality** | Core Azure infrastructure as **Terraform IaC** · Power BI **DirectQuery** to Azure SQL · **12 unit tests** green in CI |
+| **Monitoring dataset** | 6 bores · 3 management areas · 4 aquifers · approximately 3 years of daily demonstration data |
+| **Forecast evaluation** | 30-day MAE of 0.203 m against a 0.208 m persistence baseline; stronger gains at longer horizons |
+| **Anomaly detection** | 3 documented statistical detectors and an Isolation Forest evaluated against injected scenarios |
+| **Decision support** | Bore-level risk status combining forecast range, licence use, anomaly context, data completeness and a recommended action |
+| **Azure and reporting** | Terraform-provisioned Azure resources · demonstration data in Azure SQL · Power BI DirectQuery report |
+| **Quality checks** | 18 automated tests covering detector behaviour, regional rainfall, time-series splitting, ML preparation, risk scoring and HMI startup |
 
 ## Project status
 
-A portfolio build: the analytics, ML, dashboard and SCADA HMI are implemented
-and runnable; the Azure orchestration is provided as deployable artifacts rather
-than a standing production deployment.
+This is a portfolio implementation rather than a standing production system.
 
 | Component | Status |
 |-----------|--------|
-| Rule-based anomaly detection (3 detectors) | ✅ Implemented & unit-tested; packaged as a timer-triggered Azure Function (deploy workflow provided) |
-| ML forecasting + Isolation Forest | ✅ Implemented & tested **offline**; cloud inference is the next step |
-| Power BI dashboard (DirectQuery) | ✅ Built against live Azure SQL (screenshots) |
-| Real-time SCADA HMI (OPC-UA + WebSocket) | ✅ Runs locally — real protocol path, simulated field values |
-| Core Azure infra (SQL · ADF · Function · Key Vault · Storage) | ✅ Provisioned via Terraform |
-| SQL schema/views/procs · ADF pipeline · Logic App | 🔧 Scripts/artifacts provided; applied & deployed separately (not by Terraform) |
-| Logic App alerting (Email / Teams) | 🔧 Workflow definition provided; connectors not configured |
-| Live public-API ingestion | 🔧 Clients implemented; not yet validated against the live endpoints |
+| Rule-based anomaly detection | Implemented, tested and packaged as a 06:00 UTC timer-triggered Azure Function |
+| ML forecasting and Isolation Forest | Implemented and tested offline; cloud inference is not deployed |
+| Phase 2 decision support | Licence compliance, 60-day projection and bore-level risk snapshot implemented |
+| Power BI dashboard | Built with DirectQuery against the demonstration Azure SQL database |
+| SCADA HMI | Runs locally over OPC-UA and WebSocket with simulated process values |
+| Core Azure infrastructure | Provisioned through Terraform |
+| SQL, ADF and Logic App artefacts | Supplied separately from Terraform; runtime configuration remains required |
+| Live public-source ingestion | Clients implemented; live endpoint validation remains outstanding |
 
 ---
 
 ## Dashboard
 
-A four-page Power BI report on **DirectQuery**, so every visual reflects the
-live Azure SQL warehouse rather than an imported snapshot.
+The four-page Power BI report supports operational review across management
+areas. It uses DirectQuery so visuals query the Azure SQL database rather than
+an imported Power BI dataset.
 
-**Where to act today** — bores by status across every management area, with
-KPI cards and a status map for an at-a-glance operational picture.
+**Operational overview** — current status by bore and management area, with KPI
+cards and a location map.
 
 <img width="1274" height="655" alt="02_overview" src="https://github.com/user-attachments/assets/83662c44-b6af-4e48-944d-29a83e6e41f2" />
 
 
-**How the data fits together** — a clean star-style model: `monitoring_wells`
-and a `Date` dimension fanning out to the water-level, rainfall and anomaly
-fact tables.
+**Data model** — `monitoring_wells` and a `Date` dimension linked to the
+water-level, rainfall and anomaly fact tables.
 
 ![Power BI data model](powerbi/screenshots/01_data_model.png)
 
-**Is the aquifer recharging?** — water level with its 7-day moving average
-(mBGL: higher values mean deeper, plotted downward), alongside daily and
-7-day cumulative rainfall. Winter rainfall peaks line up with the water-table
-recovery: the recharge response, made visible.
+**Groundwater trend and rainfall** — water level and its 7-day moving average,
+shown with daily and 7-day cumulative rainfall. Higher mBGL values indicate a
+deeper water table and are plotted lower on the chart.
 
 ![Groundwater trend and rainfall](powerbi/screenshots/03_groundwater_trend.png)
 
-**Which bores carry risk?** — a rainfall-versus-level scatter and a per-bore
-table rolling up to the current Normal / Watch / Critical classification.
+**Risk review** — rainfall versus water level and a per-bore table showing the
+latest Normal, Watch or Critical classification.
 
 ![Advanced analytics](powerbi/screenshots/04_advanced_analytics.png)
 
 ---
 
 ## How it works
+
+The following diagram shows the intended cloud workflow. Azure infrastructure,
+Azure SQL loading and Power BI DirectQuery have been implemented. Publishing
+the ADF artefacts, deploying cloud ML scoring and connecting the Logic App
+notifications are planned extensions.
 
 ```
 [ Public data sources ]
@@ -111,164 +113,191 @@ table rolling up to the current Normal / Watch / Critical classification.
                        (DirectQuery to Azure SQL)              (workflow defined; connectors TBC)
 ```
 
-| Layer | Technology | Responsibility |
-|-------|-----------|----------------|
-| Infrastructure | **Terraform** | Provisions every Azure resource as code |
-| Ingestion | **Python** (requests · pandas · SQLAlchemy) | Pulls, normalises and idempotently upserts each source |
-| Orchestration | **Azure Data Factory** | Schedules the daily ETL (05:00 UTC) |
-| Storage | **Azure SQL Database** | Curated, query-optimised analytical store |
-| Analytics | **Azure Functions** (rules) · **scikit-learn** (ML) | Rule-based detection packaged as a 06:00 UTC timer-triggered Function (deploy workflow provided); ML forecasting + anomaly detection run offline (cloud inference planned) |
-| Secrets | **Azure Key Vault** | Connection string read via managed identity |
-| Alerting | **Azure Logic Apps** | Workflow definition for Email / Teams on CRITICAL events (connectors not yet configured) |
-| Visualisation | **Power BI** (DirectQuery) | Four-view decision dashboard |
-| CI/CD | **GitHub Actions** | Lint, unit tests, `terraform validate` |
+| Layer | Technology | Repository status |
+|-------|-----------|-------------------|
+| Infrastructure | **Terraform** | Provisions the resource group, storage, Azure SQL, Data Factory, Function App and Key Vault |
+| Ingestion | **Python** (requests · pandas · SQLAlchemy) | Source clients and idempotent SQL loaders implemented; live API validation pending |
+| Orchestration | **Azure Data Factory** | 05:00 UTC trigger and deployable artefacts included; Azure Batch and staging configuration are required |
+| Storage | **Azure SQL Database** | Schema, reporting views, licence allocation, extraction and risk snapshot tables implemented |
+| Analytics | **Azure Functions · scikit-learn · pandas** | 06:00 UTC rule-based Function, offline ML experiments and Phase 2 decision-support scoring implemented |
+| Secrets | **Azure Key Vault** | SQL connection string accessed by the Function through managed identity |
+| Alerting | **Azure Logic Apps** | Workflow definition included; email and Teams connector configuration pending |
+| Visualisation | **Power BI** (DirectQuery) | Four-page report connected to the demonstration database |
+| CI/CD | **GitHub Actions** | Python linting, unit tests, Terraform formatting and validation |
 
 ---
 
 ## Analytics
 
-### Rule-based detection (explainable)
+### Rule-based detection
 
-Three transparent detectors, each encoding a piece of hydrogeological domain
-knowledge — auditable, and exactly what a compliance context needs. Full
-rationale: [`docs/anomaly_methodology.md`](docs/anomaly_methodology.md).
+The rule-based layer provides a recorded threshold and plain-language reason
+for each event. The thresholds support this demonstration and would need to be
+calibrated against operational requirements before production use. Methodology:
+[`docs/anomaly_methodology.md`](docs/anomaly_methodology.md).
 
 | Detector | Signal | Method |
 |----------|--------|--------|
-| **Rapid Level Change** | Sudden water-level move | Z-score vs a trailing 7-day baseline (±2σ → WARNING, ±3σ → CRITICAL) |
-| **Low Recharge Response** | No rebound after rain | After a 7-day rainfall total > 20 mm, expect a ≥ 0.10 m rise within 14 days |
-| **Salinity Intrusion Risk** | Sustained rising TDS | OLS trend over 30 days (slope > 1 mg/L/day, R² ≥ 0.5); coastal bores escalate to CRITICAL |
+| **Rapid Level Change** | Sudden water-level movement | Z-score against a trailing 7-day baseline (±2σ → WARNING, ±3σ → CRITICAL) |
+| **Low Recharge Response** | Limited rebound after rain | After a 7-day rainfall total above 20 mm, check for a rise of at least 0.10 m within 14 days |
+| **Salinity Intrusion Risk** | Sustained increase in TDS | OLS trend over 30 days (slope above 1 mg/L/day, R² ≥ 0.5); coastal bores are classified as CRITICAL |
 
-### Forecasting & machine learning
+### Forecasting and machine learning
 
-Two learned models go beyond "has a known fault occurred?" to "what is coming,
-and what doesn't fit?". Detail: [`ml/README.md`](ml/README.md).
+The ML modules are evaluated offline on the committed demonstration data.
+Implementation details: [`ml/README.md`](ml/README.md).
 
-**Level forecast (supervised).** A gradient-boosted regressor predicts each
-bore's level a month ahead from lagged levels, trailing rainfall and
-seasonality — trained with a **purged chronological split** (never a random
-shuffle) and benchmarked against a persistence baseline, so the reported skill
-is genuinely forward-looking. Its edge grows with the horizon as it learns the
-seasonal recharge cycle:
+**Groundwater-level forecast.** A gradient-boosted regressor predicts the
+future water level from lagged levels, trailing rainfall, salinity and seasonal
+features. Training and testing are separated chronologically, with a purge gap
+between them. Results are compared with a persistence baseline.
 
 | Horizon | Model MAE | Persistence MAE | Improvement |
 |--------:|----------:|----------------:|------------:|
 | 7 days  | 0.138 m   | 0.124 m         | −11.5 %     |
-| 30 days | 0.204 m   | 0.208 m         | **+1.8 %**  |
-| 60 days | 0.229 m   | 0.304 m         | **+24.5 %** |
+| 30 days | 0.203 m   | 0.208 m         | **+2.2 %**  |
+| 60 days | 0.234 m   | 0.304 m         | **+22.8 %** |
+
+At seven days, persistence performs better. Performance is similar at 30 days,
+while the model performs better at the longer test horizon on this generated
+dataset.
 
 ![Actual vs predicted water level](ml/artifacts/forecast_example.png)
 
-**Unsupervised anomaly detection.** An Isolation Forest learns the joint shape
-of normal behaviour across level, salinity, their rates of change and rainfall,
-and flags points that don't fit, no labels, no thresholds. It independently
-rediscovers the deliberately-injected anomaly scenarios used to validate it.
-
-> **Why both?** Transparent rules give auditable alerts for the faults you can
-> name; the learned models add the foresight and open-ended detection that
-> fixed rules cannot.
+**Unsupervised anomaly detection.** An Isolation Forest scores level, salinity,
+rates of change and rainfall features using a 1% contamination setting. It does
+not use manually defined hydrogeological thresholds. The injected scenarios
+provide a repeatable check of the scoring pipeline rather than evidence of
+performance on operational data.
 
 ---
 
-## Live on Azure
+## Phase 2 — Regional water-security decision support
 
-Provisioned with Terraform and loaded into Azure SQL, so Power BI queries it
-live via DirectQuery.
+*Added 12 July 2026.*
+
+Phase 2 adds a bore-level risk snapshot designed for regional surveillance,
+licence compliance review and management reporting. It combines:
+
+- the latest groundwater level and a 60-day trend projection;
+- an 80% projection interval to show forecast uncertainty;
+- annual licence allocation, extraction to date and projected year-end use;
+- the latest rule-based anomaly and 30-day data completeness;
+- a 0–100 risk score, Normal / Watch / Critical status, recorded risk drivers
+  and a recommended action.
+
+Rainfall is now mapped to the relevant groundwater management area rather than
+averaged across all three stations. The committed data generator uses a fixed
+reference date, so the dataset and reported results can be reproduced.
+
+The implementation writes
+[`sample_data/water_security_risk.csv`](sample_data/water_security_risk.csv)
+and loads it into `monitoring.water_security_risk_snapshots`. Power BI can query
+the latest result through `monitoring.vw_water_security_risk`, while
+`monitoring.vw_licence_compliance` provides the allocation summary. Reusable
+measures are supplied in
+[`powerbi/phase2_water_security_measures.dax`](powerbi/phase2_water_security_measures.dax).
+The licence and extraction values are demonstration scenarios, not regulatory
+records.
+
+```bash
+python scripts/generate_sample_data.py
+python scripts/run_detectors_offline.py
+python analytics/water_security_risk.py
+```
+
+---
+
+## Azure implementation
+
+Terraform was used to provision the Azure resource group, Azure SQL Database,
+Data Factory, Function App, storage account and Key Vault. The demonstration
+dataset was loaded into Azure SQL and queried by Power BI through DirectQuery.
+The images below are from the implemented Azure environment.
 
 ![Azure resource group](docs/screenshots/azure_resource_group.png)
 ![Azure SQL query editor](docs/screenshots/azure_sql_query.png)
 
 ---
 
-## Real-time SCADA HMI with OPC-UA + AI overlay
+## SCADA HMI demonstration
 
-Beyond the daily batch dashboard, the platform includes a **web-based SCADA
-HMI** that overlays the machine-learning outputs directly onto live process
-tags — a single operator screen where forecasts and anomaly scores sit next to
-the real-time level, salinity, pump and valve readings, with no need to switch
-between a SCADA workstation and a separate BI tool.
+The repository also includes a local web-based HMI that places ML outputs and
+rule-based alerts beside process tags. It is intended to demonstrate how the
+batch analytics could be presented in an operational interface.
 
-Process tags are acquired over a **real OPC-UA subscription** — the same
-industrial protocol used by production SCADA historians and HMIs — not a
-mocked in-process feed:
+The OPC-UA server and client use an OPC-UA subscription with data-change
+notifications. The process values are simulated from the demonstration data;
+no field sensors or production control system are connected.
 
 ```
-OPC-UA server (field/RTU layer)  ──opc.tcp──►  OPC-UA client subscription  ──►  HMI  ──WebSocket──►  operator browser
- 6 bores × {level, TDS, pump, valve}            (data-change notifications)     (FastAPI)            (live AI overlay)
+OPC-UA server (PLC/RTU stand-in) ──opc.tcp──► client subscription ──► FastAPI HMI ──WebSocket──► browser
+ 6 bores × {level, TDS, pump, valve}          data-change cache          ML and alert context
 ```
 
-- **Monitor** — a standards-compliant OPC-UA server exposes one object per
-  bore; the HMI subscribes as an OPC-UA client and receives **data-change
-  notifications**, which stream on to the browser over a WebSocket.
-- **Detect** — each bore is shown with its **30-day ML forecast** and
-  **Isolation Forest anomaly score** alongside the live OPC-UA reading, so
-  divergence from expected behaviour is visible the moment it appears.
-- **Respond** — active rule-based alerts (rapid level change, low recharge,
-  salinity intrusion) surface on the same screen; the pump and valve nodes are
-  exposed as **writable**, leaving a clear path to closed-loop supervisory
-  control.
+- **Monitor** — the server exposes one object per bore and the client subscribes
+  to level, TDS, pump and valve tags.
+- **Analyse** — the HMI shows the 30-day forecast and Isolation Forest score
+  beside the current OPC-UA values.
+- **Control pathway** — pump and valve nodes are writable in the simulator. No
+  operator command workflow has been implemented.
 
-The OPC-UA server stands in for the PLC/RTU layer, advancing realistic tag
-values seeded from the latest demonstration-dataset readings (no physical
-sensors are attached, so the
-*values* are simulated — but the *protocol path* is genuine OPC-UA). In
-production the HMI's OPC-UA endpoint is simply repointed at the real field
-server or an **Azure IoT Hub OPC-UA bridge**, with no application-code change.
-Full design and production roadmap:
+The full design and production considerations are documented in
 [`scada_hmi/SCADA_HMI_REPORT.md`](scada_hmi/SCADA_HMI_REPORT.md).
 
+The generated ML CSVs remain outside version control. Create them locally
+before starting the HMI:
+
 ```bash
+pip install -r requirements.txt
 pip install -r scada_hmi/requirements.txt
-# one-off: generate the ML artifacts the HMI overlays (forecast + anomaly scores)
 python ml/forecast_train.py
 python ml/anomaly_unsupervised.py
-# then run the two processes:
-python scada_hmi/opcua_server.py      # terminal 1 — field OPC-UA server
-python scada_hmi/hmi_server.py        # terminal 2 — HMI + OPC-UA client; open http://localhost:8080
+python scada_hmi/opcua_server.py      # terminal 1
+python scada_hmi/hmi_server.py        # terminal 2; open http://localhost:8080
 ```
 
 ---
 
 <details>
-<summary><b>Run it offline (no Azure needed)</b></summary>
+<summary><b>Run the analytics offline</b></summary>
 
 ```bash
 pip install -r requirements.txt
-python scripts/generate_sample_data.py      # hydrologically-modelled demo dataset
+python scripts/generate_sample_data.py      # generate the demonstration dataset
 python scripts/run_detectors_offline.py     # rule-based detectors
-python ml/forecast_train.py                 # train + evaluate the level forecast
-python ml/anomaly_unsupervised.py           # learned multivariate anomaly detection
-pytest tests/ -v                            # 12 tests (detectors + ML)
+python ml/forecast_train.py                 # train and evaluate the level forecast
+python ml/anomaly_unsupervised.py           # multivariate anomaly scoring
+python analytics/water_security_risk.py     # risk and licence-compliance snapshot
+pytest tests/ -v                            # 18 tests
 ```
 
-To reproduce the cloud setup see [`infra/README.md`](infra/README.md) and the
-[deployment section](docs/PROJECT_REPORT.md#azure-deployment) of the project
-report. Running cost is ~AUD 5–10/month; remember `terraform destroy` when done.
+For the cloud setup, see [`infra/README.md`](infra/README.md) and the
+[deployment section](docs/PROJECT_REPORT.md#azure-deployment). The estimated
+cost of the demonstrated configuration is approximately AUD 5–10 per month.
 </details>
 
 <details>
-<summary><b>Data sources & provenance</b></summary>
+<summary><b>Data sources and provenance</b></summary>
 
-| Source | Data | Licence |
-|--------|------|---------|
-| State groundwater portal (WaterConnect) | Drillhole water levels (mBGL) & salinity (TDS) | Creative Commons Attribution |
-| National climate service (SILO) | Daily rainfall by station | Open / CC |
-| Surface-water portal | Near-real-time river & reservoir levels | Open |
+| Designed source | Data | Licence |
+|-----------------|------|---------|
+| State groundwater portal (WaterConnect) | Drillhole water levels (mBGL) and salinity (TDS) | Creative Commons Attribution |
+| National climate service (SILO) | Daily rainfall by station | Open / Creative Commons |
+| Surface-water portal | River and reservoir levels | Open |
 
-The pipeline and schema are built directly against these real, openly-licensed
-sources. The **rainfall station IDs** (Edinburgh 23083, Nuriootpa 23321,
-Willunga 23753) and the **study-area references** (the Northern Adelaide Plains,
-Barossa and McLaren Vale prescribed wells areas) are **real**; the **bore
-(drillhole) identifiers and the readings themselves are representative
-demonstration data** — the ingestion clients are implemented but not yet
-validated against the live endpoints. For the live demonstration, the dashboard
-and Azure database are
-populated through a schema-identical, hydrologically-modelled dataset
-([`scripts/generate_sample_data.py`](scripts/generate_sample_data.py)) with a
-small number of **deliberately injected anomaly scenarios** — a rapid level
-change, a stalled recharge response and a coastal salinity-intrusion trend — so
-the detection logic, thresholds and dashboard can be validated end-to-end
-against known-good answers, fully reproducibly and offline. Full rationale:
+The ingestion layer is designed around these public sources. The current
+dashboard and Azure database use a schema-compatible generated dataset from
+[`scripts/generate_sample_data.py`](scripts/generate_sample_data.py). Its bore
+identifiers and readings are representative demonstration values, not observed
+measurements. Three scenarios are added to exercise the detector logic: a rapid
+level change, limited recharge response and a coastal salinity trend.
+Phase 2 also includes representative licence allocation and metered-extraction
+scenarios for decision-support testing.
+
+Live use requires validation of endpoint response fields, drillhole and station
+identifiers, attribution requirements and reconciliation against the source
+systems. Further detail is available in
 [`docs/PROJECT_REPORT.md`](docs/PROJECT_REPORT.md#data-provenance).
 </details>
 
@@ -277,24 +306,25 @@ against known-good answers, fully reproducibly and offline. Full rationale:
 
 ```
 azure-water-quality-pipeline/
-├── infra/            # Terraform IaC (Azure SQL, ADF, Function, Key Vault)
-├── ingestion/        # Python source clients + Azure SQL loader
-├── functions/        # Azure Function: 3-detector anomaly scoring
-├── ml/               # ML: level forecasting + Isolation Forest anomaly detection
-├── adf/              # Data Factory linked services, pipeline, trigger
-├── logic_apps/       # CRITICAL-event email/Teams alert workflow
-├── sql/              # Schema, views, audit table, stored procedures
-├── powerbi/          # Dashboard screenshots
-├── scada_hmi/        # Real-time SCADA HMI: OPC-UA server + client, FastAPI/WebSocket, AI overlay
-├── scripts/          # Sample-data generator, offline runner, Azure loaders
-├── tests/            # Unit tests for the detectors and the ML models
-├── docs/             # Project report + anomaly methodology
-└── .github/          # CI (lint + test + tf validate) and Deploy workflows
+├── infra/            # Terraform infrastructure
+├── ingestion/        # Public-source clients and Azure SQL loaders
+├── functions/        # Azure Function for rule-based anomaly detection
+├── ml/               # Forecasting and Isolation Forest experiments
+├── analytics/        # Water-security risk and licence-compliance scoring
+├── adf/              # Data Factory linked services, pipeline and trigger definitions
+├── logic_apps/       # Critical-event alert workflow definition
+├── sql/              # Schema, views, audit table and stored procedures
+├── powerbi/          # Dashboard screenshots and Phase 2 DAX measures
+├── scada_hmi/        # OPC-UA server/client and FastAPI HMI demonstration
+├── scripts/          # Sample-data generation and deployment helpers
+├── tests/            # Detector, ML, risk and HMI tests
+├── docs/             # Project report and anomaly methodology
+└── .github/          # CI and manual deployment workflows
 ```
 </details>
 
 ---
 
-<sub>📄 [Full project report](docs/PROJECT_REPORT.md) ·
-🧠 [Detection methodology](docs/anomaly_methodology.md) ·
-🤖 [Machine learning](ml/README.md)</sub>
+[Project report](docs/PROJECT_REPORT.md) ·
+[Detection methodology](docs/anomaly_methodology.md) ·
+[Machine learning notes](ml/README.md)

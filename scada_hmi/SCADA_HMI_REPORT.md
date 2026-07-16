@@ -89,7 +89,7 @@ This module extends the AquaSentry pipeline with a **web-based SCADA Human–Mac
 
 ## 4. Verification
 
-Tested end-to-end against the project's sample data and ML artifacts.
+Tested end-to-end against the project's sample data and ML artefacts.
 
 **OPC-UA acquisition health** (`GET /api/opcua/status`):
 ```json

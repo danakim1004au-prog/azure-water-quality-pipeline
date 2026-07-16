@@ -128,21 +128,36 @@ def detect_low_recharge_response(
     if rainfall.empty:
         return _empty_events()
 
-    rain = rainfall.sort_values("obs_date").copy()
-    rain["roll_7d"] = (
-        rain["rainfall_mm"].rolling(RAIN_EVENT_WINDOW_DAYS, min_periods=1).sum()
-    )
-    rain_events = rain[rain["roll_7d"] > RAIN_EVENT_THRESHOLD_MM]
-    if rain_events.empty:
-        return _empty_events()
-
-    # Use the most recent qualifying rainfall event.
-    event_date = rain_events["obs_date"].max()
-    window_end = event_date + pd.Timedelta(days=RECHARGE_RESPONSE_DAYS)
-
     events: list[dict] = []
     for well_id, grp in readings.groupby("well_id"):
         grp = grp.sort_values("reading_date")
+
+        # Use the rainfall station mapped to the bore's management area. Frames
+        # without a management_area column remain supported for small unit tests.
+        well_rain = rainfall
+        if "management_area" in rainfall.columns and "management_area" in grp.columns:
+            area = grp["management_area"].iloc[-1]
+            well_rain = rainfall[rainfall["management_area"] == area]
+        if well_rain.empty:
+            continue
+
+        rain = well_rain.sort_values("obs_date").copy()
+        rain["roll_7d"] = (
+            rain["rainfall_mm"]
+            .rolling(RAIN_EVENT_WINDOW_DAYS, min_periods=1)
+            .sum()
+        )
+        rain_events = rain[rain["roll_7d"] > RAIN_EVENT_THRESHOLD_MM]
+        latest_complete_event = (
+            grp["reading_date"].max()
+            - pd.Timedelta(days=RECHARGE_RESPONSE_DAYS)
+        )
+        rain_events = rain_events[rain_events["obs_date"] <= latest_complete_event]
+        if rain_events.empty:
+            continue
+
+        event_date = rain_events["obs_date"].max()
+        window_end = event_date + pd.Timedelta(days=RECHARGE_RESPONSE_DAYS)
 
         before = grp[grp["reading_date"] <= event_date]
         after = grp[

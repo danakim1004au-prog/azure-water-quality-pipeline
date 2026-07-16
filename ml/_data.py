@@ -26,11 +26,7 @@ SAMPLE = os.path.join(HERE, "..", "sample_data")
 # Loading
 # ---------------------------------------------------------------------------
 def load_tables() -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
-    """Load wells, daily water-level readings and a regional rainfall signal.
-
-    Rainfall is averaged across the reporting stations into a single regional
-    daily series, mirroring how the rule-based detectors consume it.
-    """
+    """Load wells, daily readings and management-area rainfall."""
     wells = pd.read_csv(os.path.join(SAMPLE, "monitoring_wells.csv"))
     readings = pd.read_csv(
         os.path.join(SAMPLE, "water_level_readings.csv"),
@@ -46,9 +42,13 @@ def load_tables() -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
     if "data_quality_flag" in readings.columns:
         readings = readings[readings["data_quality_flag"] != "suspect"]
 
-    # Collapse the stations to one regional daily rainfall figure.
+    # Keep rainfall local to each groundwater management area. Older generated
+    # frames without the mapping remain supported as a single regional signal.
+    rain_groups = ["obs_date"]
+    if "management_area" in rainfall.columns:
+        rain_groups.insert(0, "management_area")
     rainfall = (
-        rainfall.groupby("obs_date", as_index=False)["rainfall_mm"]
+        rainfall.groupby(rain_groups, as_index=False)["rainfall_mm"]
         .mean()
         .rename(columns={"obs_date": "reading_date", "rainfall_mm": "rainfall_mm"})
     )
@@ -77,12 +77,15 @@ def build_forecast_features(
     Features known at time t only: lagged/rolling water levels, trailing
     rainfall totals, salinity, and a smooth day-of-year seasonality encoding.
     """
-    df = readings.merge(rainfall, on="reading_date", how="left")
-    df = df.merge(
+    df = readings.merge(
         wells[["well_id", "coastal_flag", "management_area"]],
         on="well_id",
         how="left",
     )
+    rain_keys = ["reading_date"]
+    if "management_area" in rainfall.columns:
+        rain_keys.append("management_area")
+    df = df.merge(rainfall, on=rain_keys, how="left")
     df["rainfall_mm"] = df["rainfall_mm"].fillna(0.0)
     df = df.sort_values(["well_id", "reading_date"]).reset_index(drop=True)
 
@@ -177,12 +180,15 @@ def build_anomaly_features(
     recent history), alongside day-over-day rates of change and trailing
     rainfall. IsolationForest then learns "normal" jointly across all features.
     """
-    df = readings.merge(rainfall, on="reading_date", how="left")
-    df = df.merge(
+    df = readings.merge(
         wells[["well_id", "coastal_flag", "management_area"]],
         on="well_id",
         how="left",
     )
+    rain_keys = ["reading_date"]
+    if "management_area" in rainfall.columns:
+        rain_keys.append("management_area")
+    df = df.merge(rainfall, on=rain_keys, how="left")
     df["rainfall_mm"] = df["rainfall_mm"].fillna(0.0)
     df = df.sort_values(["well_id", "reading_date"]).reset_index(drop=True)
 

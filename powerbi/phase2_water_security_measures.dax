@@ -1,0 +1,38 @@
+-- Measures for monitoring.vw_water_security_risk and
+-- monitoring.vw_licence_compliance in a DirectQuery model.
+
+Critical Bores =
+CALCULATE (
+    COUNTROWS ( vw_water_security_risk ),
+    vw_water_security_risk[risk_status] = "Critical"
+)
+
+Watch Bores =
+CALCULATE (
+    COUNTROWS ( vw_water_security_risk ),
+    vw_water_security_risk[risk_status] = "Watch"
+)
+
+Average Risk Score =
+AVERAGE ( vw_water_security_risk[risk_score] )
+
+Highest Projected Allocation Use =
+MAX ( vw_water_security_risk[projected_allocation_pct] )
+
+Bores Projected Above Allocation =
+CALCULATE (
+    DISTINCTCOUNT ( vw_water_security_risk[well_id] ),
+    vw_water_security_risk[projected_allocation_pct] > 100
+)
+
+Average 60-day Level Change =
+AVERAGE ( vw_water_security_risk[forecast_change_mbgl] )
+
+Average 30-day Data Completeness =
+AVERAGE ( vw_water_security_risk[data_completeness_30d_pct] )
+
+Selected Recommended Action =
+SELECTEDVALUE (
+    vw_water_security_risk[recommended_action],
+    "Select one bore to review the recommended action."
+)

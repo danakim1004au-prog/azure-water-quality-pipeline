@@ -20,6 +20,7 @@ logger = logging.getLogger(__name__)
 RAINFALL_COLUMNS = [
     "station_id",
     "station_name",
+    "management_area",
     "obs_date",
     "rainfall_mm",
     "data_quality_flag",
@@ -30,6 +31,7 @@ def fetch_station(
     settings: Settings,
     station_id: str,
     station_name: str,
+    management_area: str,
     window: IngestionWindow,
 ) -> pd.DataFrame:
     """Fetch a single station's daily rainfall series as a tidy frame."""
@@ -53,6 +55,7 @@ def fetch_station(
     df = pd.DataFrame()
     df["station_id"] = str(station_id)
     df["station_name"] = station_name
+    df["management_area"] = management_area
     df["obs_date"] = pd.to_datetime(raw[date_col], errors="coerce").dt.date
     df["rainfall_mm"] = pd.to_numeric(raw[rain_col], errors="coerce")
     # Negative rainfall is impossible: flag as suspect rather than dropping so
@@ -64,13 +67,17 @@ def fetch_station(
 
 
 def collect_all(
-    settings: Settings, window: IngestionWindow, stations: list[tuple[str, str]]
+    settings: Settings,
+    window: IngestionWindow,
+    stations: list[tuple[str, str, str]],
 ) -> pd.DataFrame:
     """Collect rainfall for every configured station."""
     frames: list[pd.DataFrame] = []
-    for station_id, station_name in stations:
+    for station_id, station_name, management_area in stations:
         try:
-            frame = fetch_station(settings, station_id, station_name, window)
+            frame = fetch_station(
+                settings, station_id, station_name, management_area, window
+            )
             logger.info("Fetched %d rainfall rows for %s", len(frame), station_name)
             frames.append(frame)
         except Exception:  # noqa: BLE001 - one bad station shouldn't fail the run

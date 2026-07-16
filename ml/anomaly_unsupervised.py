@@ -91,7 +91,7 @@ def _report(frame: pd.DataFrame, flagged: pd.DataFrame, cols: list[str]) -> None
         f"\nInjected-scenario bores rediscovered by the model: "
         f"{rediscovered or 'none'}"
     )
-    print(f"Artifacts written to {os.path.normpath(ARTIFACTS)}")
+    print(f"Artefacts written to {os.path.normpath(ARTIFACTS)}")
 
 
 if __name__ == "__main__":

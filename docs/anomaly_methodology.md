@@ -53,21 +53,20 @@ would reveal.
 
 **Method.**
 
-1. Build a regional 7-day rolling rainfall total from the rainfall stations.
-2. Identify the most recent **rainfall event**: a day where the 7-day total
-   exceeds **20 mm**.
+1. Map each well to the rainfall station for its groundwater management area,
+   then build a 7-day rolling rainfall total.
+2. Identify the most recent **rainfall event** where the 7-day total exceeds
+   **20 mm** and a complete 14-day response window is available.
 3. For each well, compare the water level immediately before the event to the
    shallowest level observed in the **14 days** after it.
 4. If the water table rose by less than **0.10 m**, raise a
    `LowRechargeResponse` WARNING.
 
-**Why these thresholds.** A 7-day accumulation of 20 mm is a commonly-used
-lower bound for rainfall capable of producing measurable recharge in
-temperate aquifers; smaller totals are typically lost to evapotranspiration and
-soil moisture deficit. A 14-day response window reflects the typical lag
-between rainfall and a water-table response in shallow-to-moderate aquifers.
-The 0.10 m rise threshold filters out sensor noise while still catching wells
-that are effectively unresponsive.
+**Why these thresholds.** The 20 mm rainfall total, 14-day response window and
+0.10 m water-level rise are screening settings for this demonstration. They
+make the method repeatable, but would need to be calibrated against local
+aquifer behaviour, seasonal conditions and monitoring frequency before
+operational use.
 
 **Hydrogeological meaning.** A healthy unconfined aquifer rebounds after
 significant rain. Persistent non-response suggests the aquifer is no longer

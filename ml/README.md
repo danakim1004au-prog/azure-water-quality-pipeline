@@ -37,10 +37,10 @@ horizon as it learns the seasonal recharge cycle persistence cannot see.
 | Horizon | Model MAE | Persistence MAE | Improvement |
 |--------:|----------:|----------------:|------------:|
 | 7 days  | 0.138 m   | 0.124 m         | −11.5 %     |
-| 14 days | 0.169 m   | 0.151 m         | −12.1 %     |
-| 30 days | 0.204 m   | 0.208 m         | **+1.8 %**  |
-| 45 days | 0.214 m   | 0.250 m         | **+14.4 %** |
-| 60 days | 0.229 m   | 0.304 m         | **+24.5 %** |
+| 14 days | 0.167 m   | 0.151 m         | −10.6 %     |
+| 30 days | 0.203 m   | 0.208 m         | **+2.2 %**  |
+| 45 days | 0.217 m   | 0.250 m         | **+13.3 %** |
+| 60 days | 0.234 m   | 0.304 m         | **+22.8 %** |
 
 ![Actual vs predicted water level](artifacts/forecast_example.png)
 
@@ -48,8 +48,9 @@ horizon as it learns the seasonal recharge cycle persistence cannot see.
 
 An Isolation Forest learns the joint distribution of well-agnostic features
 (rolling z-scores of level and salinity, day-over-day rates of change, and
-trailing rainfall) and flags readings that don't fit. It needs no labels and no
-thresholds, so it can surface combinations the rules don't anticipate.
+management-area rainfall) and flags readings that don't fit. It uses no labels
+or manually defined hydrogeological threshold; the operating point is set with
+a 1% contamination parameter.
 
 As a validation check, the script reports how many of the deliberately-injected
 anomaly scenarios it independently rediscovers — it surfaces the planted rapid
@@ -70,6 +71,6 @@ small result summaries and the example chart are committed.
 
 ## Deployment note
 
-Both models are plain scikit-learn artifacts. The trained `forecast_model.joblib`
+Both models are plain scikit-learn artefacts. The trained `forecast_model.joblib`
 can be loaded by the existing Azure Function for scheduled scoring, or hosted via
-Azure ML — no architectural change is required, only deploying the artifact.
+Azure ML — no architectural change is required, only deploying the model artefact.

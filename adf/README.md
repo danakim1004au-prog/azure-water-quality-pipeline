@@ -1,4 +1,4 @@
-# Azure Data Factory artifacts
+# Azure Data Factory artefacts
 
 JSON definitions for the ETL orchestration, expressed in the ARM resource shape
 the Data Factory REST API / Git integration uses.

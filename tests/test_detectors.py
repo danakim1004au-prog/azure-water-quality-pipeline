@@ -115,6 +115,42 @@ def test_low_recharge_response_ignores_healthy_rebound():
     assert detectors.detect_low_recharge_response(readings, rain).empty
 
 
+def test_low_recharge_uses_management_area_rainfall():
+    d = _dates(40)
+    readings = pd.concat(
+        [
+            pd.DataFrame(
+                {
+                    "well_id": well_id,
+                    "reading_date": d,
+                    "water_level_mbgl": 6.0,
+                    "tds_mg_per_l": 500.0,
+                    "coastal_flag": 0,
+                    "management_area": area,
+                }
+            )
+            for well_id, area in [(1, "Area A"), (2, "Area B")]
+        ],
+        ignore_index=True,
+    )
+    rain = pd.concat(
+        [
+            pd.DataFrame(
+                {
+                    "management_area": area,
+                    "obs_date": d,
+                    "rainfall_mm": [10.0 if 8 <= i <= 12 and area == "Area A" else 0.0 for i in range(40)],
+                }
+            )
+            for area in ["Area A", "Area B"]
+        ],
+        ignore_index=True,
+    )
+
+    events = detectors.detect_low_recharge_response(readings, rain)
+    assert set(events["well_id"]) == {1}
+
+
 def test_salinity_intrusion_flags_coastal_critical():
     d = _dates(30)
     tds = [500 + 5 * i for i in range(30)]  # steady rise of 5 mg/L per day

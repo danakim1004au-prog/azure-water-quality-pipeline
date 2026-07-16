@@ -23,9 +23,12 @@ SAMPLE = os.path.join(HERE, "..", "sample_data")
 # (csv file, target table, date columns) in load order (parents first).
 LOAD_PLAN = [
     ("monitoring_wells.csv", "monitoring_wells", []),
+    ("water_licences.csv", "water_licences", ["licence_start_date", "licence_end_date"]),
     ("water_level_readings.csv", "water_level_readings", ["reading_date"]),
     ("rainfall_observations.csv", "rainfall_observations", ["obs_date"]),
     ("anomaly_events.csv", "anomaly_events", ["event_date"]),
+    ("metered_extraction.csv", "metered_extraction", ["reading_month"]),
+    ("water_security_risk.csv", "water_security_risk_snapshots", ["risk_snapshot_date"]),
 ]
 
 
@@ -35,9 +38,12 @@ def main() -> int:
     # Clear existing rows so re-running is idempotent (children before parents).
     with engine.begin() as conn:
         for table in [
+            "water_security_risk_snapshots",
+            "metered_extraction",
             "anomaly_events",
             "rainfall_observations",
             "water_level_readings",
+            "water_licences",
             "monitoring_wells",
         ]:
             conn.execute(text(f"DELETE FROM monitoring.{table}"))
