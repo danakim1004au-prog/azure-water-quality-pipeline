@@ -1,0 +1,15 @@
+# Ruff configuration.
+#
+# CI installs ruff without a version pin, so declare the rule set here to keep
+# lint results deterministic when ruff is upgraded. These are the checks the
+# project has always satisfied (ruff's historical default): pycodestyle
+# import-placement, statement and runtime errors (E4/E7/E9) plus pyflakes (F).
+#
+# Keeping E4 enabled means E402 is active, so the intentional `# noqa: E402`
+# suppressions on the sys.path-based late imports stay valid. Import sorting (I)
+# and unused-noqa reporting (RUF100) are deliberately left out; enable them
+# later as a separate, tested change if desired.
+target-version = "py311"
+
+[lint]
+select = ["E4", "E7", "E9", "F"]
