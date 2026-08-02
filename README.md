@@ -14,6 +14,12 @@ experiments and a local OPC-UA HMI demonstration.
 ![SCADA HMI](https://img.shields.io/badge/SCADA%20HMI-OPC--UA%20%C2%B7%20FastAPI%20%C2%B7%20WebSocket-009688?logo=fastapi&logoColor=white)
 ![Tests](https://img.shields.io/badge/tests-18%20passing-2E8B57)
 
+![AquaSentry — Water Security & Licence Compliance dashboard (Phase 2 decision support)](powerbi/screenshots/00_water_security.png)
+
+> **Phase 2 decision-support view** — bore-level risk scores, licence-allocation
+> projections and 60-day water-level forecasts in a single management snapshot,
+> served to Power BI by DirectQuery against Azure SQL.
+
 ---
 
 ## Overview
@@ -65,9 +71,6 @@ an imported Power BI dataset.
 
 **Operational overview** — current status by bore and management area, with KPI
 cards and a location map.
-
-<img width="1274" height="655" alt="02_overview" src="https://github.com/user-attachments/assets/83662c44-b6af-4e48-944d-29a83e6e41f2" />
-
 
 **Data model** — `monitoring_wells` and a `Date` dimension linked to the
 water-level, rainfall and anomaly fact tables.
@@ -189,6 +192,13 @@ licence compliance review and management reporting. It combines:
 Rainfall is now mapped to the relevant groundwater management area rather than
 averaged across all three stations. The committed data generator uses a fixed
 reference date, so the dataset and reported results can be reproduced.
+
+![Water Security & Licence Compliance decision-support view](powerbi/screenshots/00_water_security.png)
+
+The report is version-controlled as a Power BI Project (PBIP) under
+[`powerbi/WaterSecurityPhase2/`](powerbi/WaterSecurityPhase2/), so the semantic
+model (`vw_water_security_risk`, `vw_licence_compliance`) and page layout are
+reviewable as source rather than a binary `.pbix`.
 
 The implementation writes
 [`sample_data/water_security_risk.csv`](sample_data/water_security_risk.csv)
@@ -314,7 +324,7 @@ azure-water-quality-pipeline/
 ├── adf/              # Data Factory linked services, pipeline and trigger definitions
 ├── logic_apps/       # Critical-event alert workflow definition
 ├── sql/              # Schema, views, audit table and stored procedures
-├── powerbi/          # Dashboard screenshots and Phase 2 DAX measures
+├── powerbi/          # PBIP report source, dashboard screenshots and Phase 2 DAX measures
 ├── scada_hmi/        # OPC-UA server/client and FastAPI HMI demonstration
 ├── scripts/          # Sample-data generation and deployment helpers
 ├── tests/            # Detector, ML, risk and HMI tests

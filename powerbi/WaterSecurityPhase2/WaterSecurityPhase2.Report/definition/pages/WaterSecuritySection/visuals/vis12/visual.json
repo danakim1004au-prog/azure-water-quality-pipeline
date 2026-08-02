@@ -1,0 +1,396 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.10.0/schema.json",
+  "name": "vis12",
+  "position": {
+    "x": 20,
+    "y": 526,
+    "z": 12,
+    "height": 180,
+    "width": 1240,
+    "tabOrder": 12
+  },
+  "visual": {
+    "visualType": "tableEx",
+    "query": {
+      "queryState": {
+        "Values": {
+          "projections": [
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "vw_water_security_risk"
+                    }
+                  },
+                  "Property": "location_name"
+                }
+              },
+              "queryRef": "vw_water_security_risk.location_name",
+              "nativeQueryRef": "location_name"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "vw_water_security_risk"
+                    }
+                  },
+                  "Property": "management_area"
+                }
+              },
+              "queryRef": "vw_water_security_risk.management_area",
+              "nativeQueryRef": "management_area"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "vw_water_security_risk"
+                    }
+                  },
+                  "Property": "aquifer_name"
+                }
+              },
+              "queryRef": "vw_water_security_risk.aquifer_name",
+              "nativeQueryRef": "aquifer_name"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "vw_water_security_risk"
+                    }
+                  },
+                  "Property": "licence_id"
+                }
+              },
+              "queryRef": "vw_water_security_risk.licence_id",
+              "nativeQueryRef": "licence_id"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "vw_water_security_risk"
+                    }
+                  },
+                  "Property": "allocation_used_pct"
+                }
+              },
+              "queryRef": "vw_water_security_risk.allocation_used_pct",
+              "nativeQueryRef": "allocation_used_pct"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "vw_water_security_risk"
+                    }
+                  },
+                  "Property": "projected_allocation_pct"
+                }
+              },
+              "queryRef": "vw_water_security_risk.projected_allocation_pct",
+              "nativeQueryRef": "projected_allocation_pct"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "vw_water_security_risk"
+                    }
+                  },
+                  "Property": "forecast_change_mbgl"
+                }
+              },
+              "queryRef": "vw_water_security_risk.forecast_change_mbgl",
+              "nativeQueryRef": "forecast_change_mbgl"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "vw_water_security_risk"
+                    }
+                  },
+                  "Property": "risk_score"
+                }
+              },
+              "queryRef": "vw_water_security_risk.risk_score",
+              "nativeQueryRef": "risk_score"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "vw_water_security_risk"
+                    }
+                  },
+                  "Property": "risk_status"
+                }
+              },
+              "queryRef": "vw_water_security_risk.risk_status",
+              "nativeQueryRef": "risk_status"
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "vw_water_security_risk"
+                    }
+                  },
+                  "Property": "recommended_action"
+                }
+              },
+              "queryRef": "vw_water_security_risk.recommended_action",
+              "nativeQueryRef": "recommended_action"
+            }
+          ]
+        }
+      },
+      "sortDefinition": {
+        "sort": [
+          {
+            "field": {
+              "Column": {
+                "Expression": {
+                  "SourceRef": {
+                    "Entity": "vw_water_security_risk"
+                  }
+                },
+                "Property": "risk_score"
+              }
+            },
+            "direction": "Descending"
+          }
+        ]
+      }
+    },
+    "objects": {
+      "grid": [
+        {
+          "properties": {
+            "gridVertical": {
+              "expr": {
+                "Literal": {
+                  "Value": "false"
+                }
+              }
+            },
+            "gridHorizontal": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            }
+          }
+        }
+      ],
+      "columnHeaders": [
+        {
+          "properties": {
+            "bold": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "visualContainerObjects": {
+      "title": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "text": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Bore Risk Snapshot and Recommended Action'"
+                }
+              }
+            },
+            "fontSize": {
+              "expr": {
+                "Literal": {
+                  "Value": "13D"
+                }
+              }
+            },
+            "bold": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "drillFilterOtherVisuals": true
+  },
+  "filterConfig": {
+    "filters": [
+      {
+        "name": "68b27e817b6458d219bd",
+        "field": {
+          "Column": {
+            "Expression": {
+              "SourceRef": {
+                "Entity": "vw_water_security_risk"
+              }
+            },
+            "Property": "location_name"
+          }
+        },
+        "type": "Categorical"
+      },
+      {
+        "name": "e68af1547decdb0077d2",
+        "field": {
+          "Column": {
+            "Expression": {
+              "SourceRef": {
+                "Entity": "vw_water_security_risk"
+              }
+            },
+            "Property": "management_area"
+          }
+        },
+        "type": "Categorical"
+      },
+      {
+        "name": "382847bf57a4a3059ec2",
+        "field": {
+          "Column": {
+            "Expression": {
+              "SourceRef": {
+                "Entity": "vw_water_security_risk"
+              }
+            },
+            "Property": "aquifer_name"
+          }
+        },
+        "type": "Categorical"
+      },
+      {
+        "name": "ab43c443c37cee89b819",
+        "field": {
+          "Column": {
+            "Expression": {
+              "SourceRef": {
+                "Entity": "vw_water_security_risk"
+              }
+            },
+            "Property": "licence_id"
+          }
+        },
+        "type": "Categorical"
+      },
+      {
+        "name": "a0950cfcd4392cd52389",
+        "field": {
+          "Column": {
+            "Expression": {
+              "SourceRef": {
+                "Entity": "vw_water_security_risk"
+              }
+            },
+            "Property": "allocation_used_pct"
+          }
+        },
+        "type": "Advanced"
+      },
+      {
+        "name": "6bb1ced624bb45aa10d5",
+        "field": {
+          "Column": {
+            "Expression": {
+              "SourceRef": {
+                "Entity": "vw_water_security_risk"
+              }
+            },
+            "Property": "projected_allocation_pct"
+          }
+        },
+        "type": "Advanced"
+      },
+      {
+        "name": "4e8c14e133e1dcee2108",
+        "field": {
+          "Column": {
+            "Expression": {
+              "SourceRef": {
+                "Entity": "vw_water_security_risk"
+              }
+            },
+            "Property": "forecast_change_mbgl"
+          }
+        },
+        "type": "Advanced"
+      },
+      {
+        "name": "3f0b80d7537eb6f1dec3",
+        "field": {
+          "Column": {
+            "Expression": {
+              "SourceRef": {
+                "Entity": "vw_water_security_risk"
+              }
+            },
+            "Property": "risk_score"
+          }
+        },
+        "type": "Advanced"
+      },
+      {
+        "name": "635d7ed49316f1884647",
+        "field": {
+          "Column": {
+            "Expression": {
+              "SourceRef": {
+                "Entity": "vw_water_security_risk"
+              }
+            },
+            "Property": "risk_status"
+          }
+        },
+        "type": "Categorical"
+      },
+      {
+        "name": "f4a690cd9c1e22707536",
+        "field": {
+          "Column": {
+            "Expression": {
+              "SourceRef": {
+                "Entity": "vw_water_security_risk"
+              }
+            },
+            "Property": "recommended_action"
+          }
+        },
+        "type": "Categorical"
+      }
+    ]
+  }
+}

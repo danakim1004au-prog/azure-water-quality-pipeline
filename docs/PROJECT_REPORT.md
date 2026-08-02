@@ -273,8 +273,6 @@ is kept inactive so it can be invoked explicitly where needed without
 distorting the default filter context.
 
 ### 7.2 Operational overview
-![Operational overview across management areas](../powerbi/screenshots/02_overview.png)
-
 The at-a-glance operational view: KPI cards (bores monitored, critical and
 warning counts, average water level), a map of every bore coloured by status,
 and a status breakdown by management area. This is the page designed to be

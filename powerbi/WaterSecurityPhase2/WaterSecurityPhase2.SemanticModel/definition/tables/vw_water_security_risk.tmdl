@@ -1,0 +1,191 @@
+table vw_water_security_risk
+	lineageTag: 9c368d16-1314-432d-b767-1f5d7220db60
+
+	measure 'Critical Bores' = CALCULATE ( COUNTROWS ( vw_water_security_risk ), vw_water_security_risk[risk_status] = "Critical" )
+		formatString: 0
+		lineageTag: 7a0883a5-da8b-475c-a0fb-c0d360ed1167
+
+	measure 'Watch Bores' = CALCULATE ( COUNTROWS ( vw_water_security_risk ), vw_water_security_risk[risk_status] = "Watch" )
+		formatString: 0
+		lineageTag: 3b022541-eb1f-4497-986b-cda6f9b09e2f
+
+	measure 'Average Risk Score' = AVERAGE ( vw_water_security_risk[risk_score] )
+		formatString: 0.0
+		lineageTag: 1b14b8e4-0993-4b5d-bef9-7dcca2bf4713
+
+	measure 'Bores Projected Above Allocation' = CALCULATE ( DISTINCTCOUNT ( vw_water_security_risk[well_id] ), vw_water_security_risk[projected_allocation_pct] > 100 )
+		formatString: 0
+		lineageTag: 1d3f6764-8458-468a-a759-e49ec48f2288
+
+	measure 'Average 60-day Level Change' = AVERAGE ( vw_water_security_risk[forecast_change_mbgl] )
+		formatString: 0.00" m"
+		lineageTag: d5955194-5e44-4a1e-a45d-4dd34247ece0
+
+	measure 'Risk Status Colour' = SWITCH ( SELECTEDVALUE ( vw_water_security_risk[risk_status] ), "Critical", "#D64550", "Watch", "#B98600", "Normal", "#107C10", "#605E5C" )
+		lineageTag: 90fd8a14-8ce5-4c78-a246-cc8529e2f489
+
+	measure 'Risk Bar Colour' = SWITCH ( SELECTEDVALUE ( vw_water_security_risk[risk_status] ), "Critical", "#D64550", "Watch", "#E8A33D", "Normal", "#107C10", "#605E5C" )
+		lineageTag: 92e9daaa-7fe0-459e-baca-97d1f808deae
+
+	measure 'Highest Projected Allocation Use' = MAX ( vw_water_security_risk[projected_allocation_pct] )
+		formatString: 0.0
+		lineageTag: 33333333-aaaa-4bbb-8ccc-333333333333
+
+	measure 'Average 30-day Data Completeness' = AVERAGE ( vw_water_security_risk[data_completeness_30d_pct] )
+		formatString: 0.0
+		lineageTag: 44444444-aaaa-4bbb-8ccc-444444444444
+
+	measure 'Selected Recommended Action' = SELECTEDVALUE ( vw_water_security_risk[recommended_action], "Select one bore to review the recommended action." )
+		lineageTag: 55555555-aaaa-4bbb-8ccc-555555555555
+
+	column snapshot_date
+		dataType: dateTime
+		formatString: d/MM/yyyy
+		lineageTag: c2990be8-146c-4e8c-b772-7a3541b8a743
+		summarizeBy: none
+		sourceColumn: snapshot_date
+
+		annotation UnderlyingDateTimeDataType = Date
+
+	column location_name
+		dataType: string
+		lineageTag: d266b35c-2cf6-4eb5-adf1-259809957068
+		summarizeBy: none
+		sourceColumn: location_name
+
+	column management_area
+		dataType: string
+		lineageTag: 2f318bbb-5709-47b1-b0d7-7f53f0a22d89
+		summarizeBy: none
+		sourceColumn: management_area
+
+	column aquifer_name
+		dataType: string
+		lineageTag: 278e2da4-9862-4b20-98c9-eebc8003f542
+		summarizeBy: none
+		sourceColumn: aquifer_name
+
+	column licence_id
+		dataType: string
+		lineageTag: f1165a0a-4133-4521-98f5-bed9d3fe55aa
+		summarizeBy: none
+		sourceColumn: licence_id
+
+	column latest_level_mbgl
+		dataType: double
+		formatString: 0.00
+		lineageTag: 4c48a5e2-46fb-4a93-be63-103521956c6e
+		summarizeBy: none
+		sourceColumn: latest_level_mbgl
+
+	column forecast_60d_mbgl
+		dataType: double
+		formatString: 0.00
+		lineageTag: 74087e33-fa82-4980-9612-a0996b6f170d
+		summarizeBy: none
+		sourceColumn: forecast_60d_mbgl
+
+	column forecast_lower_80_mbgl
+		dataType: double
+		formatString: 0.00
+		lineageTag: efa4ae1d-d41f-448a-b736-187409d59ecb
+		summarizeBy: none
+		sourceColumn: forecast_lower_80_mbgl
+
+	column forecast_upper_80_mbgl
+		dataType: double
+		formatString: 0.00
+		lineageTag: 1e97e012-9fc8-45e0-bddd-a8e4ae1fdc32
+		summarizeBy: none
+		sourceColumn: forecast_upper_80_mbgl
+
+	column forecast_change_mbgl
+		dataType: double
+		formatString: 0.00
+		lineageTag: b0f9cc2d-8bad-4079-9cd5-8ddb5d52066f
+		summarizeBy: none
+		sourceColumn: forecast_change_mbgl
+
+	column allocation_used_pct
+		dataType: double
+		formatString: 0.0
+		lineageTag: 5033cd99-2678-4c99-b2a4-f3b4ed8806c1
+		summarizeBy: none
+		sourceColumn: allocation_used_pct
+
+	column projected_allocation_pct
+		dataType: double
+		formatString: 0.0
+		lineageTag: 3ad2002f-cff2-4a62-a97c-2747f75a4bbe
+		summarizeBy: none
+		sourceColumn: projected_allocation_pct
+
+	column risk_score
+		dataType: int64
+		formatString: 0
+		lineageTag: c143da72-f24c-4561-850f-22bf19c12951
+		summarizeBy: none
+		sourceColumn: risk_score
+
+	column risk_status
+		dataType: string
+		lineageTag: 73fb9882-ebc2-414d-bb42-7926e0a5f0e4
+		summarizeBy: none
+		sourceColumn: risk_status
+
+	column recommended_action
+		dataType: string
+		lineageTag: fc2ded3e-c1df-4286-913f-f953240affc0
+		summarizeBy: none
+		sourceColumn: recommended_action
+
+	column well_id
+		dataType: int64
+		formatString: 0
+		lineageTag: 11111111-aaaa-4bbb-8ccc-111111111111
+		summarizeBy: none
+		sourceColumn: well_id
+
+	column data_completeness_30d_pct
+		dataType: double
+		formatString: 0.0
+		lineageTag: 22222222-aaaa-4bbb-8ccc-222222222222
+		summarizeBy: none
+		sourceColumn: data_completeness_30d_pct
+
+	partition vw_water_security_risk = m
+		mode: import
+		source =
+				let
+				    Source = #table(
+				        type table [
+				            snapshot_date = date,
+				            location_name = text,
+				            management_area = text,
+				            aquifer_name = text,
+				            licence_id = text,
+				            latest_level_mbgl = number,
+				            forecast_60d_mbgl = number,
+				            forecast_lower_80_mbgl = number,
+				            forecast_upper_80_mbgl = number,
+				            forecast_change_mbgl = number,
+				            allocation_used_pct = number,
+				            projected_allocation_pct = number,
+				            risk_score = Int64.Type,
+				            risk_status = text,
+				            recommended_action = text,
+					            well_id = Int64.Type,
+					            data_completeness_30d_pct = number
+				        ],
+				        {
+				            {#date(2026,6,7), "Virginia NAP-01", "Northern Adelaide Plains", "T1 Sand", "LIC-NAP-2025", 6.507, 3.795, 3.388, 4.202, -2.712, 96.5, 102.9, 100, "Critical", "Confirm the latest level reading and review recent pumping conditions.", 1, 100.0},
+				            {#date(2026,6,7), "Maslin Beach MLV-01", "McLaren Vale", "Maslin Sand", "LIC-MLV-2025", 5.995, 5.555, 5.248, 5.862, -0.44, 86.1, 91.9, 85, "Critical", "Confirm the salinity result and review coastal bore monitoring.", 5, 100.0},
+				            {#date(2026,6,7), "Angle Vale NAP-02", "Northern Adelaide Plains", "T2 Sand", "LIC-NAP-2025", 4.498, 4.058, 3.758, 4.359, -0.44, 96.5, 102.9, 50, "Watch", "Review extraction against the licence allocation and prepare a compliance response.", 2, 100.0},
+				            {#date(2026,6,7), "Tanunda BAR-02", "Barossa", "Fractured Rock", "LIC-BAR-2025", 7.336, 7.348, 7.304, 7.391, 0.012, 71.1, 75.9, 25, "Watch", "Review the recent rainfall response and check for continued low recharge.", 4, 100.0},
+				            {#date(2026,6,7), "Port Willunga MLV-02", "McLaren Vale", "Port Willunga Fm", "LIC-MLV-2025", 6.513, 6.074, 5.78, 6.369, -0.439, 86.1, 91.9, 25, "Watch", "Review the seasonal pumping plan and monitor allocation use monthly.", 6, 100.0},
+				            {#date(2026,6,7), "Nuriootpa BAR-01", "Barossa", "Fractured Rock", "LIC-BAR-2025", 5.031, 4.578, 4.278, 4.879, -0.453, 71.1, 75.9, 0, "Normal", "Continue routine monitoring.", 3, 100.0}
+				        }
+				    )
+				in
+				    Source
+

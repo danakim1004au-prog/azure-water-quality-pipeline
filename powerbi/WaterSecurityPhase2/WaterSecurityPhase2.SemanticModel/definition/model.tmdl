@@ -1,0 +1,19 @@
+model Model
+	culture: en-AU
+	defaultPowerBIDataSourceVersion: powerBI_V3
+	sourceQueryCulture: en-AU
+	dataAccessOptions
+		legacyRedirects
+		returnErrorValuesAsNull
+
+annotation __PBI_TimeIntelligenceEnabled = 0
+
+annotation PBI_QueryOrder = ["vw_water_security_risk","vw_licence_compliance"]
+
+annotation PBI_ProTooling = ["DevMode"]
+
+ref table vw_water_security_risk
+ref table vw_licence_compliance
+
+ref cultureInfo en-AU
+

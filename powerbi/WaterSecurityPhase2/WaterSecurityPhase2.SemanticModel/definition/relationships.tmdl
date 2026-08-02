@@ -1,0 +1,5 @@
+relationship ace93edd-fcad-47d6-a11c-75597f678ddd
+	crossFilteringBehavior: bothDirections
+	fromColumn: vw_water_security_risk.licence_id
+	toColumn: vw_licence_compliance.licence_id
+

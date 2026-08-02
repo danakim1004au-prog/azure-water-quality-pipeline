@@ -1,0 +1,80 @@
+table vw_licence_compliance
+	lineageTag: 96a15108-b412-4d50-8687-93477f5c2ff0
+
+	column licence_id
+		dataType: string
+		lineageTag: ecce1108-fd9c-4bf4-b50d-83e9f0c11a80
+		summarizeBy: none
+		sourceColumn: licence_id
+
+	column management_area
+		dataType: string
+		lineageTag: f1638a9c-fbee-4a81-942d-1a1c2704f63f
+		summarizeBy: none
+		sourceColumn: management_area
+
+	column licence_year
+		dataType: string
+		lineageTag: ee57c1c6-915a-482c-849f-0bc8b091dae4
+		summarizeBy: none
+		sourceColumn: licence_year
+
+	column annual_allocation_ml
+		dataType: double
+		formatString: #,0.0
+		lineageTag: b681b609-5770-4d24-9426-c10e47143fea
+		summarizeBy: none
+		sourceColumn: annual_allocation_ml
+
+	column extracted_ytd_ml
+		dataType: double
+		formatString: #,0.0
+		lineageTag: 2e02f339-96e9-405b-bfc0-d800c95977c3
+		summarizeBy: none
+		sourceColumn: extracted_ytd_ml
+
+	column allocation_used_pct
+		dataType: double
+		formatString: 0.0
+		lineageTag: c5f1483b-5e76-4454-903b-07cdb0e82c56
+		summarizeBy: none
+		sourceColumn: allocation_used_pct
+
+	column projected_year_end_ml
+		dataType: double
+		formatString: #,0.0
+		lineageTag: a146760e-bc02-4a6e-9880-b4a65fa387ff
+		summarizeBy: none
+		sourceColumn: projected_year_end_ml
+
+	column projected_allocation_pct
+		dataType: double
+		formatString: 0.0
+		lineageTag: 1c30b355-7dd2-4ed1-8706-20b694b49ad5
+		summarizeBy: none
+		sourceColumn: projected_allocation_pct
+
+	partition vw_licence_compliance = m
+		mode: import
+		source =
+				let
+				    Source = #table(
+				        type table [
+				            licence_id = text,
+				            management_area = text,
+				            licence_year = text,
+				            annual_allocation_ml = number,
+				            extracted_ytd_ml = number,
+				            allocation_used_pct = number,
+				            projected_year_end_ml = number,
+				            projected_allocation_pct = number
+				        ],
+				        {
+				            {"LIC-NAP-2025", "Northern Adelaide Plains", "2025-26", 2400.0, 2314.87, 96.5, 2470.55, 102.9},
+				            {"LIC-MLV-2025", "McLaren Vale", "2025-26", 1100.0, 947.12, 86.1, 1010.82, 91.9},
+				            {"LIC-BAR-2025", "Barossa", "2025-26", 1400.0, 995.02, 71.1, 1061.94, 75.9}
+				        }
+				    )
+				in
+				    Source
+

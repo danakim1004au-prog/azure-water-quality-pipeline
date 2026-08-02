@@ -47,3 +47,7 @@ powerbi/mockup/
 .DS_Store
 .vscode/
 .idea/
+
+# Stray OneDrive/macOS cloud-storage symlink artefact accidentally created at
+# the repo root; not part of the project.
+/OneDrive
