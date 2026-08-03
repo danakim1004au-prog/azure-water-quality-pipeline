@@ -1,14 +1,16 @@
 # AquaSentry: Multi-Aquifer Groundwater Monitoring & Forecasting
 
+**Power BI · Azure SQL · Azure Data Factory · Power Query/M**
+
 A portfolio project for monitoring groundwater level and salinity across several
 management areas. It pulls together Azure infrastructure, Python data
-processing, Power BI reporting, statistical anomaly detection, machine-learning
+processing, Power BI reporting, statistical anomaly detection, machine learning
 experiments and a local OPC-UA HMI demo.
 
 [![CI](https://github.com/danakim1004au-prog/azure-water-quality-pipeline/actions/workflows/ci.yml/badge.svg)](https://github.com/danakim1004au-prog/azure-water-quality-pipeline/actions/workflows/ci.yml)
 ![Azure](https://img.shields.io/badge/Azure-SQL%20%C2%B7%20Data%20Factory%20%C2%B7%20Functions-0078D4?logo=microsoftazure&logoColor=white)
 ![Terraform](https://img.shields.io/badge/IaC-Terraform-7B42BC?logo=terraform&logoColor=white)
-![Power BI](https://img.shields.io/badge/Power%20BI-DirectQuery-F2C811?logo=powerbi&logoColor=black)
+![Power BI](https://img.shields.io/badge/Power%20BI-PBIP%20%C2%B7%20DirectQuery-F2C811?logo=powerbi&logoColor=black)
 ![Python](https://img.shields.io/badge/Python-3.11-3776AB?logo=python&logoColor=white)
 ![scikit-learn](https://img.shields.io/badge/scikit--learn-forecast%20%2B%20anomaly-F7931E?logo=scikitlearn&logoColor=white)
 ![SCADA HMI](https://img.shields.io/badge/SCADA%20HMI-OPC--UA%20%C2%B7%20FastAPI%20%C2%B7%20WebSocket-009688?logo=fastapi&logoColor=white)
@@ -16,9 +18,10 @@ experiments and a local OPC-UA HMI demo.
 
 ![Water Security & Licence Compliance dashboard](powerbi/screenshots/00_water_security.png)
 
-> **Water Security & Licence Compliance dashboard.** Bore-level risk scores,
-> licence-allocation projections and 60-day water-level forecasts in one
-> management view, served to Power BI over DirectQuery against Azure SQL.
+> **Water Security & Licence Compliance dashboard.** Bore level risk scores,
+> licence allocation projections and 60-day water level forecasts in one
+> management view. The page is committed as PBIP source, and it carries its
+> demonstration rows inline so it opens without an Azure subscription.
 
 ---
 
@@ -30,10 +33,16 @@ rapid level changes, weak recharge responses and sustained salinity increases.
 Separate machine-learning experiments look at future water levels and unusual
 combinations of readings.
 
-The Power BI report uses DirectQuery against Azure SQL. The current database is
-populated with a generated demonstration dataset of six bores and three known
-anomaly scenarios. Public-source ingestion clients are included, but live API
-validation and reconciliation are still future work.
+There are two Power BI artefacts. The four-page operational report reads Azure
+SQL over DirectQuery. The Water Security page is committed as PBIP source with
+its demonstration rows embedded, so it renders for anyone who clones the
+repository. [`docs/power-query.md`](docs/power-query.md) sets out how each one
+is built and what separates them.
+
+The database behind the DirectQuery report holds a generated demonstration
+dataset of six bores and three known anomaly scenarios. Public-source ingestion
+clients are included, but live API validation and reconciliation are still
+future work.
 
 ## Project scope
 
@@ -43,7 +52,7 @@ validation and reconciliation are still future work.
 | **Forecast evaluation** | 30-day MAE of 0.203 m against a 0.208 m persistence baseline, with stronger gains at longer horizons |
 | **Anomaly detection** | 3 documented statistical detectors and an Isolation Forest evaluated against injected scenarios |
 | **Decision support** | Bore-level risk status combining forecast range, licence use, anomaly context, data completeness and a recommended action |
-| **Azure and reporting** | Terraform-provisioned Azure resources, demonstration data in Azure SQL, a Power BI DirectQuery report |
+| **Azure and reporting** | Terraform-provisioned Azure resources, demonstration data in Azure SQL, a four-page DirectQuery report and a Water Security page committed as PBIP source |
 | **Quality checks** | 18 automated tests covering detector behaviour, regional rainfall, time-series splitting, ML preparation, risk scoring and HMI startup |
 
 ## Project status
@@ -55,7 +64,8 @@ This is a portfolio implementation, not a standing production system.
 | Rule-based anomaly detection | Implemented, tested and packaged as a 06:00 UTC timer-triggered Azure Function |
 | ML forecasting and Isolation Forest | Implemented and tested offline. Cloud inference is not deployed |
 | Decision support | Licence compliance, 60-day projection and bore-level risk snapshot implemented |
-| Power BI dashboard | Built with DirectQuery against the demonstration Azure SQL database |
+| Power BI operational report | Four pages built with DirectQuery against the demonstration Azure SQL database. Not yet in source control |
+| Power BI Water Security page | Committed as PBIP. Runs on embedded demonstration rows, so it is not wired to the database |
 | SCADA HMI | Runs locally over OPC-UA and WebSocket with simulated process values |
 | Core Azure infrastructure | Provisioned through Terraform |
 | SQL, ADF and Logic App artefacts | Supplied separately from Terraform. Runtime configuration is still required |
@@ -193,14 +203,21 @@ reference date, so the dataset and reported results reproduce exactly.
 The report is version-controlled as a Power BI Project (PBIP) under
 [`powerbi/WaterSecurityPhase2/`](powerbi/WaterSecurityPhase2/), so the semantic
 model (`vw_water_security_risk`, `vw_licence_compliance`) and page layout are
-reviewable as source rather than a binary `.pbix`.
+reviewable as source rather than a binary `.pbix`. Measures and relationships
+show up in a diff the same way Python does.
 
-The implementation writes
+That model holds its rows inline rather than querying the database, which is
+what lets the page render on a fresh clone. It also means the figures only move
+when someone regenerates them.
+[`docs/power-query.md`](docs/power-query.md) lists the seven column names that
+would need aligning to point the model at the views instead.
+
+The scoring itself runs against SQL. The implementation writes
 [`sample_data/water_security_risk.csv`](sample_data/water_security_risk.csv) and
-loads it into `monitoring.water_security_risk_snapshots`. Power BI reads the
-latest result through `monitoring.vw_water_security_risk`, while
-`monitoring.vw_licence_compliance` provides the allocation summary. Reusable
-measures are in
+loads it into `monitoring.water_security_risk_snapshots`, which
+`monitoring.vw_water_security_risk` exposes as the latest snapshot per bore and
+`monitoring.vw_licence_compliance` summarises by licence. The same measures are
+kept as plain text in
 [`powerbi/phase2_water_security_measures.dax`](powerbi/phase2_water_security_measures.dax).
 The licence and extraction values are demonstration scenarios, not regulatory
 records.
@@ -323,7 +340,7 @@ azure-water-quality-pipeline/
 ├── scada_hmi/        # OPC-UA server/client and FastAPI HMI demonstration
 ├── scripts/          # Sample-data generation and deployment helpers
 ├── tests/            # Detector, ML, risk and HMI tests
-├── docs/             # Project report and anomaly methodology
+├── docs/             # Project report, anomaly methodology, support runbook, Power Query layer
 └── .github/          # CI and manual deployment workflows
 ```
 </details>
@@ -332,4 +349,6 @@ azure-water-quality-pipeline/
 
 [Project report](docs/PROJECT_REPORT.md) ·
 [Detection methodology](docs/anomaly_methodology.md) ·
+[Support runbook](docs/runbook.md) ·
+[Power Query / M layer](docs/power-query.md) ·
 [Machine learning notes](ml/README.md)
